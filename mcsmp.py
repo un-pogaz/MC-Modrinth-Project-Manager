@@ -1,17 +1,15 @@
-from os.path import exists
-from sys import argv, path
-
+from sys import argv
 import os
 import json
 from collections import namedtuple
 
 import requests
 
-
-def _json(path ,data=None):
+def _json(path, data=None):
     if data:
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
+        return data
     
     else:
         try:
@@ -19,113 +17,132 @@ def _json(path ,data=None):
         except:
             return {}
 
-def mcsmp(data=None):
+def root(data=None):
     return _json('mcsmp.json', data)
+
+def mcsmp(dir, data=None):
+    path = root().get(dir, None)
+    
+    if not path:
+        print(f'The directory "{dir}" his not defined')
+        exit()
+    
+    if not os.path.exists(path):
+        print(f'The path directory "{dir}" doesn\'t exist')
+        exit()
+    
+    data_path = os.path.join(path, '.mcsmp.json')
+    if not os.path.exists(data_path):
+        data = {}
+        data['game_version'] = None
+        data['loader'] = None
+        data['resourcepack'] = {}
+        data['mod'] = {}
+    
+    if data: del data['path']
+    data = _json(data_path, data)
+    data['path'] = path
+    return data
 
 
 def dir_add(dir, path):
-    path = os.path.abspath(path)
+    r = root()
+    r[dir] = os.path.abspath(path).replace('\\', '/')
+    root(r)
     
-    data = mcsmp()
-    if dir not in data:
-        data[dir] = {}
-    data[dir]['path'] = path.replace('\\','/')
-    data[dir]['game_version'] = data[dir].get('game_version', None)
-    data[dir]['loader'] = data[dir].get('loader', None)
-    data[dir]['resourcepack'] = data[dir].get('resourcepack', {})
-    data[dir]['mod'] = data[dir].get('mod', {})
+    data = mcsmp(dir)
+    
     print(f'Directorie "{dir}" added')
-    if not data[dir]['game_version'] and not data[dir]['loader']:
+    if not data['game_version'] and not data['loader']:
         print(f"Don't forget to set a 'version' for Minecraft and a 'loader'")
-    elif not data[dir]['game_version']:
+    elif not data['game_version']:
         print(f"Don't forget to set a 'version' for Minecraft")
-    elif not data[dir]['loader']:
+    elif not data['loader']:
         print(f"Don't forget to set a 'loader'")
-    
-    mcsmp(data)
 
 def dir_list():
-    data = mcsmp()
-    if not data:
-        print(f'No directories has defined')
+    r = root()
+    if not r:
+        print(f'No directorys has defined')
         return
-    for dir, data in mcsmp().items():
+    for dir in r:
+        data = mcsmp(dir)
         path = data['path']
         loader = data['loader']
         game_version = data['game_version']
         print(f'"{dir}" : {game_version}/{loader} => "{path}"')
 
 def dir_version(dir, version):
-    data = mcsmp()
-    test_dir(data, dir)
-    data[dir]['game_version'] = version
+    data = mcsmp(dir)
+    data['game_version'] = version
     print(f'Directorie "{dir}" set to the version {version}')
-    mcsmp(data)
+    mcsmp(dir, data)
 
 def dir_loader(dir, loader):
-    data = mcsmp()
-    test_dir(data, dir)
-    data[dir]['loader'] = loader.lower()
+    data = mcsmp(dir)
+    data['loader'] = loader.lower()
     print(f'Directorie "{dir}" set to the loader {loader}')
-    mcsmp(data)
-
-def test_dir(data, dir):
-    if dir not in data:
-        print(f'The directorie "{dir}" his not defined')
-        exit()
-    
-    if not os.path.exists(data[dir]['path']):
-        print(f'The path directorie "{dir}" doesn\'t exist')
-        exit()
-
-def test_version(data, dir):
-    test_dir(data, dir)
-    if not data[dir]['game_version']:
-        print(f'The directorie "{dir}" has no defined version')
-        exit()
-
-def test_loader(data, dir):
-    test_version(data, dir)
-    if not data[dir]['loader']:
-        print(f'The directorie "{dir}" has no defined loader')
-        exit()
+    mcsmp(dir, data)
 
 
-ProjectType = namedtuple('ProjectType', 'type folder test')
-project_types = [
-    ProjectType('resourcepack', 'resourcepacks', test_version),
-    ProjectType('mod', 'mods', test_loader),
-]
+def test_version(dir, data, _exit=True):
+    if not data['game_version']:
+        print(f'The directory "{dir}" has no defined version')
+        if _exit: exit()
+        else: return False
+    return True
+
+def test_loader(dir, data, _exit=True):
+    test_version(dir, data)
+    if not data['loader']:
+        print(f'The directory "{dir}" has no defined loader')
+        if _exit: exit()
+        else: return False
+    return True
+
+
+ProjectType = namedtuple('ProjectType', 'folder test')
+project_types = {
+    'resourcepack':ProjectType('resourcepacks', test_version),
+    'mod':ProjectType('mods', test_loader),
+}
 alt_loaders = {'quilt': ['fabric']}
 
 def project_list(dir):
-    data = mcsmp()
+    data = mcsmp(dir)
     first = True
-    for pt in project_types:
-        lst = data[dir][pt.type]
-        if lst:
-            first = False
+    for type, pt in project_types.items():
+        lst = data[type]
+        if lst and pt.test(dir, data, False):
             if not first: print()
+            first = False
             print(f'--== Installed {pt.folder} for "{dir}" ==--')
-            for name, _ in data[dir][pt.type].items():
+            for name, _ in data[type].items():
                 print(f"{name}")
 
 
-def project_check(dir, slug):
-    data = mcsmp()
-    test_version(data, dir)
+def project_check(dir, urlslug):
+    data = mcsmp(dir)
+    test_version(dir, data)
     
-    if slug in data[dir]['mod'] or slug in data[dir]['resourcepack']:
-        print(f'"{slug}" is installed in the directorie "{dir}"')
-    else:
-        print(f'"{slug}" is not installed in the directorie "{dir}"')
+    for type, pt in project_types.items():
+        if urlslug in data[type]:
+            print(f'"{urlslug}" is installed in the directory "{dir}"')
+            
+            path_filename = os.path.join(data['path'], pt.folder, data[type][urlslug])
+            if not os.path.exists(path_filename) and os.path.exists(path_disabled(path_filename)):
+                print(f'but it is disabled')
+            elif not os.path.exists(path_filename) and not os.path.exists(path_disabled(path_filename)):
+                print(f'but the file are not present! Reinstal the project')
+            return
+    
+    print(f'"{urlslug}" is not installed in the directory "{dir}"')
 
 
 def path_disabled(path):
     return path+'.disabled'
-def path_enable(data, dir, folder, urlslug, enable):
-    
-    path_filename = os.path.join(data[dir]['path'], folder, data[dir]['mod'][urlslug])
+def path_enable(data, type, urlslug, enable):
+    path_filename = os.path.join(data['path'], project_types[type].folder, data[type][urlslug])
     
     if enable and os.path.exists(path_disabled(path_filename)):
         os.rename(path_disabled(path_filename), path_filename)
@@ -137,46 +154,38 @@ def path_enable(data, dir, folder, urlslug, enable):
 def link(wanted):
     return f'https://api.modrinth.com/v2/{wanted}'
 
-def project_install(dir, slug):
-    data = mcsmp()
-    
-    install_project_file(data, dir, slug)
-    
-    mcsmp(data)
+def project_install(dir, urlslug):
+    data = mcsmp(dir)
+    install_project_file(data, urlslug)
+    mcsmp(dir, data)
 
 def project_update(dir):
-    data = mcsmp()
+    data = mcsmp(dir)
     
     total = 0
     errors = []
     
-    for slug in data[dir]['resourcepack']:
-        rslt = install_project_file(data, dir, slug)
-        if rslt is None:
-            errors.append(slug)
-        if rslt:
-            total += 1
-        print()
-    
-    for slug in data[dir]['mod']:
-        rslt = install_project_file(data, dir, slug)
-        if rslt is None:
-            errors.append(slug)
-        if rslt:
-            total += 1
-        print()
+    for type, pt in project_types.items():
+        if pt.test(dir, data, False):
+            for urlslug in data[type]:
+                rslt = install_project_file(data, urlslug)
+                if rslt is None:
+                    errors.append(urlslug)
+                if rslt:
+                    total += 1
+                print()
     
     print(f'Finaly! {total} projects has been updated in "{dir}"')
     if errors:
         print(f'but... the following projects have suffered an error during their download:')
         print(', '.join(errors))
-    mcsmp(data)
+    mcsmp(dir, data)
 
-def install_project_file(data, dir, urlslug):
+def install_project_file(data, urlslug):
     urlslug = urlslug.lower()
     urllink = link(f'project/{urlslug}')
-    game_version = data[dir]['game_version']
-    loader = data[dir]['loader']
+    game_version = data['game_version']
+    loader = data['loader']
     
     url = requests.get(urllink)
     if not url.ok:
@@ -192,10 +201,10 @@ def install_project_file(data, dir, urlslug):
             loader = 'minecraft'
         
         base_path = None
-        for pt in project_types:
-            if project_type == pt.type:
-                pt.test(data, dir)
-                base_path = os.path.join(data[dir]['path'], pt.folder)
+        for type, pt in project_types.items():
+            if project_type == type:
+                pt.test(dir, data)
+                base_path = os.path.join(data['path'], pt.folder)
                 os.makedirs(base_path, exist_ok=True)
         
         if not base_path:
@@ -219,7 +228,7 @@ def install_project_file(data, dir, urlslug):
             print(f"Got the link for Minecraft {game_version} and the loader {loader}")
             
             filename = version_project['filename']
-            filename_old = data[dir][project_type].get(urlslug, None)
+            filename_old = data[project_type].get(urlslug, None)
             path_filename = os.path.join(base_path, filename)
             
             disabled = False
@@ -249,7 +258,7 @@ def install_project_file(data, dir, urlslug):
                     except:
                         pass
                     
-                data[dir][project_type][urlslug] = filename
+                data[project_type][urlslug] = filename
                 print(f'Done! The project "{urlslug}" has been installed in "{dir}"')
                 installed = True
             
@@ -262,40 +271,40 @@ def install_project_file(data, dir, urlslug):
 
 
 def project_remove(dir, urlslug):
-    data = mcsmp()
-    test_version(data, dir)
+    data = mcsmp(dir)
+    test_version(dir, data)
     urlslug = urlslug.lower()
     
-    for pt in project_types:
-        if urlslug in data[dir][pt.type]:
-            path_filename = os.path.join(data[dir]['path'], pt.folder, data[dir]['mod'][urlslug])
-            path_enable(data, dir, pt.folder, urlslug, True)
+    for type, pt in project_types.items():
+        if urlslug in data[type]:
+            path_filename = os.path.join(data['path'], pt.folder, data[type][urlslug])
+            path_enable(data, type, urlslug, True)
             try:
                 os.remove(path_filename)
             except:
                 pass
             
-            del data[dir][pt.type][urlslug]
-            mcsmp(data)
-            print(f'Deleted project {urlslug} from "{dir}"')
-            break
+            del data[type][urlslug]
+            mcsmp(dir, data)
+            print(f'Project {urlslug} deleted from "{dir}"')
+            return
     
     print(f'The project {urlslug} is not installed in "{dir}"')
 
 
 def project_enable(dir, urlslug, enable):
-    data = mcsmp()
-    test_version(data, dir)
+    data = mcsmp(dir)
+    test_version(dir, data)
     urlslug = urlslug.lower()
     
-    for pt in project_types:
-        if urlslug in data[dir][pt.type]:
-            path_enable(data, dir, pt.folder, urlslug, enable)
+    for type in project_types:
+        if urlslug in data[type]:
+            path_enable(data, type, urlslug, enable)
             if enable:
                 print(f'Project {urlslug} in "{dir}" is now enabled')
             else:
                 print(f'Project {urlslug} in "{dir}" is now disabled')
-            break
+            return
     
     print(f'The project {urlslug} is not installed in "{dir}"')
 
