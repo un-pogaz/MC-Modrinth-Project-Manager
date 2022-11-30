@@ -199,19 +199,17 @@ def install_project_file(data, urlslug):
         project_id = project_data['id']
         project_type = project_data['project_type']
         
+        if project_type not in project_types:
+            print(f"The project type of {urlslug} is unknow: {project_type}")
+            return None
+        
         if project_type == 'resourcepack':
             loader = 'minecraft'
         
-        base_path = None
-        for type, pt in project_types.items():
-            if project_type == type:
-                pt.test(dir, data)
-                base_path = os.path.join(data['path'], pt.folder)
-                os.makedirs(base_path, exist_ok=True)
-        
-        if not base_path:
-            print(f"The project type of {urlslug} is unknow: {project_type}")
-            return None
+        pt = project_types[project_type]
+        pt.test(dir, data)
+        base_path = os.path.join(data['path'], pt.folder)
+        os.makedirs(base_path, exist_ok=True)
         
         print("Fetch versions")
         versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version").content)
