@@ -9,7 +9,7 @@ First, install Minecraft with your favorite laucher.
 Second, install the mod loader that you use.
 Then, install the python script in the folder of your choice.
 
-After installing mcsmp, you have to define .minecraft folder to manage.
+After installing mcsmp, you have to define a .minecraft folder to manage.
 To add this, use this command:
 ```bat
 mcsmp add <DIRECTORY_NAME> <PATH TO THE .MINECRAFT FOLDER>
@@ -55,6 +55,15 @@ Check if a specific project is installed:
 ```bat
 mcsmp check <DIRECTORY_NAME> <PROJECT>
 ```
+
+Eventualy, enabled or disabled:
+```bat
+mcsmp enable <DIRECTORY_NAME> <PROJECT>
+```
+```bat
+mcsmp disable <DIRECTORY_NAME> <PROJECT>
+```
+(This will add, or remove, a ".disabled" string at the end of the project file, so that it will not be loaded by Minecraft, but it will still be possible to use the mcsmp commands on this project)
 
 And removing a project:
 ```bat
