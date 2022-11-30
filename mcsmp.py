@@ -249,8 +249,13 @@ def install_project_file(data, urlslug):
             if not os.path.exists(path_filename) or not filename_old:
                 if not os.path.exists(path_filename):
                     print("Download project now...")
-                    with open(path_filename, 'wb') as f:
-                        f.write(requests.get(version_project['url']).content)
+                    url = requests.get(version_project['url'])
+                    if url.ok:
+                        with open(path_filename, 'wb') as f:
+                            f.write(url.content)
+                    else:
+                        print("Downloading fail!")
+                        return None
                 
                 if filename_old and filename_old != filename:
                     try:
