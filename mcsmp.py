@@ -158,7 +158,7 @@ def link(wanted):
 
 def project_install(dir, urlslug):
     data = mcsmp(dir)
-    install_project_file(data, urlslug)
+    install_project_file(dir, data, urlslug)
     mcsmp(dir, data)
 
 def project_update(dir):
@@ -170,7 +170,7 @@ def project_update(dir):
     for type, pt in project_types.items():
         if pt.test(dir, data, False):
             for urlslug in data[type]:
-                rslt = install_project_file(data, urlslug)
+                rslt = install_project_file(dir, data, urlslug)
                 if rslt is None:
                     errors.append(urlslug)
                 if rslt:
@@ -183,7 +183,7 @@ def project_update(dir):
         print(', '.join(errors))
     mcsmp(dir, data)
 
-def install_project_file(data, urlslug):
+def install_project_file(dir, data, urlslug):
     urlslug = urlslug.lower()
     urllink = link(f'project/{urlslug}')
     game_version = data['game_version']
@@ -300,7 +300,6 @@ def project_remove(dir, urlslug):
 def project_enable(dir, urlslug, enable):
     urlslug = urlslug.lower()
     data = mcsmp(dir)
-    test_version(dir, data)
     
     for type in project_types:
         if urlslug in data[type]:
