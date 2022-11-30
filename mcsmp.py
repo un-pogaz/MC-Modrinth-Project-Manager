@@ -122,6 +122,7 @@ def project_list(dir):
 
 
 def project_check(dir, urlslug):
+    urlslug = urlslug.lower()
     data = mcsmp(dir)
     test_version(dir, data)
     
@@ -142,6 +143,7 @@ def project_check(dir, urlslug):
 def path_disabled(path):
     return path+'.disabled'
 def path_enable(data, type, urlslug, enable):
+    urlslug = urlslug.lower()
     path_filename = os.path.join(data['path'], project_types[type].folder, data[type][urlslug])
     
     if enable and os.path.exists(path_disabled(path_filename)):
@@ -271,9 +273,9 @@ def install_project_file(data, urlslug):
 
 
 def project_remove(dir, urlslug):
+    urlslug = urlslug.lower()
     data = mcsmp(dir)
     test_version(dir, data)
-    urlslug = urlslug.lower()
     
     for type, pt in project_types.items():
         if urlslug in data[type]:
@@ -293,9 +295,9 @@ def project_remove(dir, urlslug):
 
 
 def project_enable(dir, urlslug, enable):
+    urlslug = urlslug.lower()
     data = mcsmp(dir)
     test_version(dir, data)
-    urlslug = urlslug.lower()
     
     for type in project_types:
         if urlslug in data[type]:
