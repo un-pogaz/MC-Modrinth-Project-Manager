@@ -20,6 +20,8 @@ def _json(path, data=None):
 def root(data=None):
     return _json('mcsmp.json', data)
 
+def _mcsmp(path):
+    return os.path.join(path, '.mcsmp.json')
 def mcsmp(dir, data=None):
     path = root().get(dir, None)
     
@@ -31,7 +33,7 @@ def mcsmp(dir, data=None):
         print(f'The path directory "{dir}" doesn\'t exist')
         exit()
     
-    data_path = os.path.join(path, '.mcsmp.json')
+    data_path = _mcsmp(path)
     if not os.path.exists(data_path):
         data = {}
         data['game_version'] = None
@@ -39,16 +41,36 @@ def mcsmp(dir, data=None):
         data['resourcepack'] = {}
         data['mod'] = {}
     
-    if data: del data['path']
+    if data and 'path' in data: del data['path']
     data = _json(data_path, data)
     data['path'] = path
     return data
 
 
 def dir_add(dir, path):
+    path = os.path.abspath(path).replace('\\', '/')
+    if not os.path.exists(path):
+        print(f'The path "{path}" doesn\'t exist')
+        exit()
+    
+    if not os.path.isdir(path):
+        print(f'The path "{path}" is not a folder')
+        exit()
+    
+    
     r = root()
-    r[dir] = os.path.abspath(path).replace('\\', '/')
+    for k,v in r.items():
+        if path == v and dir != k:
+                print(f'The path "{path}" is already assosiated to the directory "{k}"')
+                exit()
+    
+    path_old = r.get(dir, None)
+    r[dir] = path
     root(r)
+    
+    if path_old and path_old != path:
+        _json(_mcsmp(path), _json(_mcsmp(path_old)))
+        os.remove(_mcsmp(path_old))
     
     data = mcsmp(dir)
     
