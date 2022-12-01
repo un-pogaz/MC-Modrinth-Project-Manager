@@ -6,7 +6,7 @@ from collections import namedtuple
 import requests
 
 def _json(path, data=None):
-    if data:
+    if data is not None:
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
         return data
@@ -234,12 +234,14 @@ def install_project_file(dir, data, urlslug):
         os.makedirs(base_path, exist_ok=True)
         
         print("Fetch versions")
-        versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version").content)
+        all_loaders = [loader]+loaders_alt.get(loader, [])
+        params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
+        versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version", params=params).content)
         
         version_project = None
-        for _loader in [loader]+loaders_alt.get(loader, []):
+        for _loader in all_loaders:
             for v in versions:
-                if game_version in v['game_versions'] and _loader in v['loaders']:
+                if _loader in v['loaders']:
                     version_project = v['files'][0]
                     break
             if version_project:
