@@ -4,6 +4,8 @@ import json
 from collections import namedtuple
 
 import requests
+requests = requests.Session()
+requests.headers.update({'User-Agent':'un-pogaz/MC-Modrinth-Project-Manager/0.4 (un.pogaz@gmail.com)'})
 
 def _json(path, data=None):
     if data is not None:
