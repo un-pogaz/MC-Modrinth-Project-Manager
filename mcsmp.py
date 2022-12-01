@@ -128,7 +128,7 @@ project_types = {
     'resourcepack':ProjectType('resourcepacks', test_version),
     'mod':ProjectType('mods', test_loader),
 }
-alt_loaders = {'quilt': ['fabric']}
+loaders_alt = {'quilt': ['fabric']}
 
 def project_list(dir):
     data = mcsmp(dir)
@@ -237,11 +237,13 @@ def install_project_file(dir, data, urlslug):
         versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version").content)
         
         version_project = None
-        for _loader in [loader]+alt_loaders.get(loader, []):
+        for _loader in [loader]+loaders_alt.get(loader, []):
             for v in versions:
                 if game_version in v['game_versions'] and _loader in v['loaders']:
                     version_project = v['files'][0]
                     break
+            if version_project:
+                break
         
         if not version_project:
             print(f"No version of {urlslug} available for Minecraft {game_version} and the loader {loader}")
