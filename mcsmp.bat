@@ -1,4 +1,5 @@
 @echo off
+title mcsmp.py CLI
 
 :loop
 set /p cmd=mcsmp.py 

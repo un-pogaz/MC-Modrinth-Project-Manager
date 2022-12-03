@@ -70,12 +70,11 @@ def dir_add(dir, path):
         print(f'The path "{path}" is not a folder')
         exit()
     
-    
     r = root()
     for k,v in r.items():
         if path == v and dir != k:
-                print(f'The path "{path}" is already assosiated to the directory "{k}"')
-                exit()
+            print(f'The path "{path}" is already assosiated to the directory "{k}"')
+            exit()
     
     path_old = r.get(dir, None)
     r[dir] = path
