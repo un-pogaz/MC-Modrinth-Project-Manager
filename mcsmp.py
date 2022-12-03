@@ -32,7 +32,7 @@ def mcsmp(dir, data=None):
         exit()
     
     if not os.path.exists(path):
-        print(f'The path directory "{dir}" doesn\'t exist')
+        print(f'The path "{path}" of the directory "{dir}" doesn\'t exist')
         exit()
     
     edited = False
@@ -134,30 +134,30 @@ loaders_alt = {'quilt': ['fabric']}
 
 def project_list(dir):
     
+    def print_basic(name, data):
+        path = data['path']
+        loader = data['loader']
+        game_version = data['game_version']
+        print(f'"{name}" : {game_version}/{loader} => "{path}"')
+    
     if dir is None:
         r = root()
         if not r:
             print(f'No directorys has defined')
             return
-        for dir in r:
-            data = mcsmp(dir)
-            path = data['path']
-            loader = data['loader']
-            game_version = data['game_version']
-            print(f'"{dir}" : {game_version}/{loader} => "{path}"')
+        for name in r:
+            print_basic(name, mcsmp(name))
     
     if dir is not None:
         data = mcsmp(dir)
-        first = True
+        print_basic(dir, data)
         for type, pt in project_types.items():
             lst = data[type]
             if lst and pt.test(dir, data, False):
-                if not first: print()
-                first = False
-                print(f'--== Installed {pt.folder} for "{dir}" ==--')
+                print()
+                print(f'--== Installed {pt.folder} ==--')
                 for name, _ in data[type].items():
                     print(f"{name}")
-
 
 def project_check(dir, urlslug):
     urlslug = urlslug.lower()
@@ -251,7 +251,7 @@ def install_project_file(dir, data, urlslug):
         base_path = os.path.join(data['path'], pt.folder)
         os.makedirs(base_path, exist_ok=True)
         
-        print("Fetch versions")
+        print("Fetching versions...")
         all_loaders = [loader]+loaders_alt.get(loader, [])
         params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
         versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version", params=params).content)
@@ -266,10 +266,10 @@ def install_project_file(dir, data, urlslug):
                 break
         
         if not version_project:
-            print(f"No version of {urlslug} available for Minecraft {game_version} and the loader {loader}")
+            print(f"No version of {urlslug} available for Minecraft '{game_version}' and the loader '{loader}'")
         
-        if version_project:
-            print(f"Got the link for Minecraft {game_version} and the loader {loader}")
+        else:
+            print(f"Got the link for Minecraft '{game_version}' and the loader '{loader}'")
             
             filename = version_project['filename']
             filename_old = data[project_type].get(urlslug, None)
@@ -287,12 +287,12 @@ def install_project_file(dir, data, urlslug):
                     os.rename(path_disabled(path_filename_old), path_filename_old)
                 
                 if os.path.exists(path_filename_old) and filename_old == filename:
-                    print(f"The project {urlslug} is already up to date")
+                    print(f'The project {urlslug} is already up to date in "{dir}"')
             
             installed = False
             if not os.path.exists(path_filename) or not filename_old:
                 if not os.path.exists(path_filename):
-                    print("Download project now...")
+                    print("Downloading project...")
                     url = requests.get(version_project['url'])
                     if url.ok:
                         with open(path_filename, 'wb') as f:
