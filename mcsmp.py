@@ -188,7 +188,7 @@ def project_install(dir, urlslug):
 def project_update(dir):
     data = mcsmp(dir)
     
-    total = 0
+    total = []
     errors = []
     
     for type, pt in project_types.items():
@@ -198,10 +198,12 @@ def project_update(dir):
                 if rslt is None:
                     errors.append(urlslug)
                 if rslt:
-                    total += 1
+                    total.append(urlslug)
                 print()
     
-    print(f'Finaly! {total} projects has been updated in "{dir}"')
+    print(f'Finaly! {len(total)} projects has been updated in "{dir}"')
+    if total:
+        print('Updated projects: ' + ', '.join(total))
     if errors:
         print(f'but... the following projects have suffered an error during their download:')
         print(', '.join(errors))
