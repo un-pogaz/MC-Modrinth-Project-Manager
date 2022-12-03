@@ -35,16 +35,27 @@ def mcsmp(dir, data=None):
         print(f'The path directory "{dir}" doesn\'t exist')
         exit()
     
+    edited = False
     data_path = _mcsmp(path)
     if not os.path.exists(data_path):
         data = {}
-        data['game_version'] = None
-        data['loader'] = None
-        data['resourcepack'] = {}
-        data['mod'] = {}
+        edited = True
+    else:
+        data = _json(data_path)
     
-    if data and 'path' in data: del data['path']
-    data = _json(data_path, data)
+    for k in ['game_version', 'loader']:
+        if k not in data:
+            data[k] = None
+            edited = True
+    for k in ['resourcepack', 'mod']:
+        if k not in data:
+            data[k] = {}
+            edited = True
+    
+    if edited:
+        if data and 'path' in data: del data['path']
+        _json(data_path, data)
+    
     data['path'] = path
     return data
 
