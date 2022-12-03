@@ -27,7 +27,7 @@ mcsmp loader <DIRECTORY_NAME> <LOADER_NAME>
 
 You can display the defined directorys with the command:
 ```bat
-mcsmp dirs
+mcsmp list
 ```
 
 <br>

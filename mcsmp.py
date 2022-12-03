@@ -95,17 +95,6 @@ def dir_add(dir, path):
     elif not data['loader']:
         print(f"Don't forget to set a 'loader'")
 
-def dir_list():
-    r = root()
-    if not r:
-        print(f'No directorys has defined')
-        return
-    for dir in r:
-        data = mcsmp(dir)
-        path = data['path']
-        loader = data['loader']
-        game_version = data['game_version']
-        print(f'"{dir}" : {game_version}/{loader} => "{path}"')
 
 def dir_version(dir, version):
     data = mcsmp(dir)
@@ -144,16 +133,30 @@ project_types = {
 loaders_alt = {'quilt': ['fabric']}
 
 def project_list(dir):
-    data = mcsmp(dir)
-    first = True
-    for type, pt in project_types.items():
-        lst = data[type]
-        if lst and pt.test(dir, data, False):
-            if not first: print()
-            first = False
-            print(f'--== Installed {pt.folder} for "{dir}" ==--')
-            for name, _ in data[type].items():
-                print(f"{name}")
+    
+    if dir is None:
+        r = root()
+        if not r:
+            print(f'No directorys has defined')
+            return
+        for dir in r:
+            data = mcsmp(dir)
+            path = data['path']
+            loader = data['loader']
+            game_version = data['game_version']
+            print(f'"{dir}" : {game_version}/{loader} => "{path}"')
+    
+    if dir is not None:
+        data = mcsmp(dir)
+        first = True
+        for type, pt in project_types.items():
+            lst = data[type]
+            if lst and pt.test(dir, data, False):
+                if not first: print()
+                first = False
+                print(f'--== Installed {pt.folder} for "{dir}" ==--')
+                for name, _ in data[type].items():
+                    print(f"{name}")
 
 
 def project_check(dir, urlslug):
@@ -395,8 +398,8 @@ def usage():
     print(os.path.basename(argv[0]) + " <CMD> [DIR [PROJECT]]")
     print()
     print("Commands:")
-    print("    dirs                 - show all defined directory")
-    print("    list <DIR>           - show all installed projects (mods, resourcepacks and datapacks)")
+    print("    list [DIR]           - show all installed projects in specified directory (mods, resourcepacks and datapacks)")
+    print("                         - if no DIR specified, show all defined directory")
     print("    info <PROJECT>       - show info about a mod")
     print()
     print("    add <DIR> <PATH>         - add a directory, the target path must the root .minecraft folder")
@@ -427,10 +430,8 @@ def main():
     cmd = get_arg_n(1).lower()
     if False: pass
     
-    elif cmd == 'dirs':
-        dir_list()
     elif cmd == 'list':
-        project_list(get_arg_n(2))
+        project_list(get_arg_n(2, False))
     elif cmd == 'info':
         project_info(get_arg_n(2))
         
