@@ -37,11 +37,14 @@ def mcsmp(dir, data=None):
     
     edited = False
     data_path = _mcsmp(path)
-    if not os.path.exists(data_path):
-        data = {}
+    if data is not None:
         edited = True
     else:
-        data = _json(data_path)
+        if not os.path.exists(data_path):
+            data = {}
+            edited = True
+        else:
+            data = _json(data_path)
     
     for k in ['game_version', 'loader']:
         if k not in data:
