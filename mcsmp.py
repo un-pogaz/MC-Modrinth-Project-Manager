@@ -134,6 +134,17 @@ project_types = {
 }
 loaders_alt = {'quilt': ['fabric']}
 
+def test_filename(path_filename):
+    enabled = True
+    if not os.path.exists(path_filename) and os.path.exists(path_disabled(path_filename)):
+        enabled = False
+    present = True
+    if not os.path.exists(path_filename) and not os.path.exists(path_disabled(path_filename)):
+        present = False
+        enabled = False
+    
+    return enabled, present
+
 def project_list(dir):
     
     def print_basic(name, data):
@@ -158,8 +169,9 @@ def project_list(dir):
             if lst and pt.test(dir, data, False):
                 print()
                 print(f'--== Installed {pt.folder} ==--')
-                for name, _ in data[type].items():
-                    print(f"{name}")
+                for name, filename in data[type].items():
+                    enabled, present = test_filename(os.path.join(data['path'], pt.folder, filename))
+                    print(f"{name}" + ('' if enabled else (' [disabled]' if present else ' !!not present!!')))
 
 def project_check(dir, urlslug):
     urlslug = urlslug.lower()
@@ -168,12 +180,9 @@ def project_check(dir, urlslug):
     
     for type, pt in project_types.items():
         if urlslug in data[type]:
-            print(f'"{urlslug}" is installed in the directory "{dir}"')
-            
-            path_filename = os.path.join(data['path'], pt.folder, data[type][urlslug])
-            if not os.path.exists(path_filename) and os.path.exists(path_disabled(path_filename)):
-                print(f'but it is disabled')
-            elif not os.path.exists(path_filename) and not os.path.exists(path_disabled(path_filename)):
+            enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
+            print(f'"{urlslug}" is installed in the directory "{dir}"'+ ('' if enabled else (' [disabled]' if present else ' !!not present!!')))
+            if not present:
                 print(f'but the file are not present! Reinstal the project')
             return
     
@@ -198,8 +207,8 @@ def link(wanted):
 
 def project_install(dir, urlslug):
     data = mcsmp(dir)
-    install_project_file(dir, data, urlslug)
-    mcsmp(dir, data)
+    if install_project_file(dir, data, urlslug):
+        mcsmp(dir, data)
 
 def project_update(dir):
     data = mcsmp(dir)
@@ -215,6 +224,7 @@ def project_update(dir):
                     errors.append(urlslug)
                 if rslt:
                     total.append(urlslug)
+                    mcsmp(dir, data)
                 print()
     
     print(f'Finaly! {len(total)} projects has been updated in "{dir}"')
@@ -223,7 +233,6 @@ def project_update(dir):
     if errors:
         print(f'but... the following projects have suffered an error during their download:')
         print(', '.join(errors))
-    mcsmp(dir, data)
 
 def install_project_file(dir, data, urlslug):
     urlslug = urlslug.lower()
@@ -292,16 +301,15 @@ def install_project_file(dir, data, urlslug):
                     print(f'The project {urlslug} is already up to date in "{dir}"')
             
             installed = False
-            if not os.path.exists(path_filename) or not filename_old:
-                if not os.path.exists(path_filename):
-                    print("Downloading project...")
-                    url = requests.get(version_project['url'])
-                    if url.ok:
-                        with open(path_filename, 'wb') as f:
-                            f.write(url.content)
-                    else:
-                        print("Downloading fail!")
-                        return None
+            if not os.path.exists(path_filename) or not filename_old or filename != filename_old:
+                print("Downloading project...")
+                url = requests.get(version_project['url'])
+                if url.ok:
+                    with open(path_filename, 'wb') as f:
+                        f.write(url.content)
+                else:
+                    print("Downloading fail!")
+                    return None
                 
                 if filename_old and filename_old != filename:
                     try:
