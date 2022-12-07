@@ -158,7 +158,7 @@ def project_list(dir):
         if not r:
             print(f'No directorys has defined')
             return
-        for name in r:
+        for name in sorted(r):
             print_basic(name, mcsmp(name))
     
     if dir is not None:
@@ -169,8 +169,8 @@ def project_list(dir):
             if lst and pt.test(dir, data, False):
                 print()
                 print(f'--== Installed {pt.folder} ==--')
-                for name, filename in data[type].items():
-                    enabled, present = test_filename(os.path.join(data['path'], pt.folder, filename))
+                for name in sorted(data[type]):
+                    enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][name]))
                     print(f"{name}" + ('' if enabled else (' [disabled]' if present else ' !!not present!!')))
 
 def project_check(dir, urlslug):
@@ -229,10 +229,10 @@ def project_update(dir):
     
     print(f'Finaly! {len(total)} projects has been updated in "{dir}"')
     if total:
-        print('Updated projects: ' + ', '.join(total))
+        print('Updated projects: ' + ', '.join(sorted(total)))
     if errors:
         print(f'but... the following projects have suffered an error during their download:')
-        print(', '.join(errors))
+        print(', '.join(sorted(errors)))
 
 def install_project_file(dir, data, urlslug):
     urlslug = urlslug.lower()
