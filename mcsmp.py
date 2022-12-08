@@ -254,6 +254,8 @@ def install_project_file(dir, data, urlslug):
             print(f"The project type of {urlslug} is unknow: {project_type}")
             return None
         
+        print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
+        
         if project_type == 'resourcepack':
             loader = 'minecraft'
         
@@ -262,7 +264,6 @@ def install_project_file(dir, data, urlslug):
         base_path = os.path.join(data['path'], pt.folder)
         os.makedirs(base_path, exist_ok=True)
         
-        print("Fetching versions...")
         all_loaders = [loader]+loaders_alt.get(loader, [])
         params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
         versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version", params=params).content)
@@ -277,14 +278,14 @@ def install_project_file(dir, data, urlslug):
                 break
         
         if not version_project:
-            print(f"No version of {urlslug} available for Minecraft '{game_version}' and the loader '{loader}'")
+            print(f"No version available")
         
         else:
-            print(f"Got the link for Minecraft '{game_version}' and the loader '{loader}'")
-            
             filename = version_project['filename']
             filename_old = data[project_type].get(urlslug, None)
             path_filename = os.path.join(base_path, filename)
+            
+            print(f"Got the link for '{filename}'")
             
             disabled = False
             if os.path.exists(path_disabled(path_filename)):
