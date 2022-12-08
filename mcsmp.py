@@ -218,7 +218,7 @@ def project_update(dir):
     
     for type, pt in project_types.items():
         if pt.test(dir, data, False):
-            for urlslug in data[type]:
+            for urlslug in sorted(data[type]):
                 rslt = install_project_file(dir, data, urlslug)
                 if rslt is None:
                     errors.append(urlslug)
@@ -229,10 +229,10 @@ def project_update(dir):
     
     print(f'Finaly! {len(total)} projects has been updated in "{dir}"')
     if total:
-        print('Updated projects: ' + ', '.join(sorted(total)))
+        print('Updated projects: ' + ', '.join(total))
     if errors:
         print(f'but... the following projects have suffered an error during their download:')
-        print(', '.join(sorted(errors)))
+        print(', '.join(errors))
 
 def install_project_file(dir, data, urlslug):
     urlslug = urlslug.lower()
