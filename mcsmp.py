@@ -298,11 +298,11 @@ def install_project_file(dir, data, urlslug):
                     disabled = True
                     os.rename(path_disabled(path_filename_old), path_filename_old)
                 
-                if os.path.exists(path_filename_old) and filename_old == filename and os.path.getsize(path_filename_old) == version_project['size']:
-                    print(f'The project {urlslug} is already up to date in "{dir}"')
-            
             installed = False
-            if not os.path.exists(path_filename) or not filename_old or filename != filename_old or os.path.getsize(path_filename_old) != version_project['size']:
+            if filename_old and os.path.exists(path_filename) and filename_old == filename and os.path.getsize(path_filename) == version_project['size']:
+                print(f'The project {urlslug} is already up to date in "{dir}"')
+            
+            else:
                 print("Downloading project...")
                 url = requests.get(version_project['url'])
                 if url.ok:
