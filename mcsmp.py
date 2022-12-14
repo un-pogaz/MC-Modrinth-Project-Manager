@@ -266,7 +266,7 @@ def install_project_file(dir, data, urlslug):
         
         all_loaders = [loader]+loaders_alt.get(loader, [])
         params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
-        versions = json.loads(requests.get(f"https://api.modrinth.com/v2/project/{project_id}/version", params=params).content)
+        versions = json.loads(requests.get(link(f"project/{project_id}/version"), params=params).content)
         
         version_project = None
         for _loader in all_loaders:
@@ -298,11 +298,11 @@ def install_project_file(dir, data, urlslug):
                     disabled = True
                     os.rename(path_disabled(path_filename_old), path_filename_old)
                 
-                if os.path.exists(path_filename_old) and filename_old == filename:
+                if os.path.exists(path_filename_old) and filename_old == filename and os.path.getsize(path_filename_old) == version_project['size']:
                     print(f'The project {urlslug} is already up to date in "{dir}"')
             
             installed = False
-            if not os.path.exists(path_filename) or not filename_old or filename != filename_old:
+            if not os.path.exists(path_filename) or not filename_old or filename != filename_old or os.path.getsize(path_filename_old) != version_project['size']:
                 print("Downloading project...")
                 url = requests.get(version_project['url'])
                 if url.ok:
