@@ -19,8 +19,13 @@ def _json(path, data=None):
         except:
             return {}
 
+def sort_dict(dic):
+    return {kv[0]:kv[1] for kv in sorted(dic.items(), key=lambda item: item[0].casefold())}
+
 def root(data=None):
-    return _json('mcsmp.json', data)
+    if data:
+        data = sort_dict(data)
+    return sort_dict(_json('mcsmp.json', data))
 
 def _mcsmp(path):
     return os.path.join(path, '.mcsmp.json')
@@ -54,6 +59,8 @@ def mcsmp(dir, data=None):
         if k not in data:
             data[k] = {}
             edited = True
+        
+        data[k] = sort_dict(data[k])
     
     if edited:
         if data and 'path' in data: del data['path']
@@ -158,7 +165,7 @@ def project_list(dir):
         if not r:
             print(f'No directorys has defined')
             return
-        for name in sorted(r):
+        for name in r:
             print_basic(name, mcsmp(name))
     
     if dir is not None:
@@ -169,7 +176,7 @@ def project_list(dir):
             if lst and pt.test(dir, data, False):
                 print()
                 print(f'--== Installed {pt.folder} ==--')
-                for name in sorted(data[type]):
+                for name in data[type]:
                     enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][name]))
                     print(f"{name}" + ('' if enabled else (' [disabled]' if present else ' !!not present!!')))
 
@@ -218,7 +225,7 @@ def project_update(dir):
     
     for type, pt in project_types.items():
         if pt.test(dir, data, False):
-            for urlslug in sorted(data[type]):
+            for urlslug in data[type]:
                 rslt = install_project_file(dir, data, urlslug)
                 if rslt is None:
                     errors.append(urlslug)
