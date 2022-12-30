@@ -1,5 +1,5 @@
 # Simple Modrinth Project Manager for Minecraft
-mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders, and support a large type of project (mod, resource packs, shader).
+mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders, and support a large type of project (mod, resource packs, shader, datapack).
 mcsmp use the packages `requests`.
 
 mcsmp is higly inspire by [Fxomt-III/Minecraft-package-manager](https://github.com/Fxomt-III/Minecraft-package-manager).
@@ -105,6 +105,20 @@ mcsmp install fabric-1.18.2 phosphor
 mcsmp install fabric-1.18.2 ferrite-core
 mcsmp list fabric-1.18.2
 mcsmp info sodium
+```
+
+<br>
+
+To use mcsmp with datapacks, you must also specify the world you targeting by adding its folder name at the end of the command. Commands that can support the "world last argument" for datapack are: `list`, `check`, `install`, `enable`, `disable`, `remove`, `update`
+examples, with the world "New Start":
+```bat
+mcsmp check fabric-1.18.2 rpgtitles "New Start"
+mcsmp install fabric-1.18.2 rpgtitles "New Start"
+mcsmp install fabric-1.18.2 gm4-bat-grenades "New Start"
+mcsmp disable fabric-1.18.2 gm4-bat-grenades "New Start"
+mcsmp remove fabric-1.18.2 gm4-bat-grenades "New Start"
+mcsmp list fabric-1.18.2 "New Start"
+mcsmp update fabric-1.18.2 "New Start"
 ```
 
 <br>
