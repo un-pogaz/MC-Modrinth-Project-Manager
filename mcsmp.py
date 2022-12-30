@@ -9,15 +9,16 @@ requests.headers.update({'User-Agent':'un-pogaz/MC-Modrinth-Project-Manager/0.4 
 
 def _json(path, data=None):
     if data is not None:
-        with open(path, 'w') as f:
-            json.dump(data, f, indent=2)
+        with open(path, 'wt', newline='\n', encoding='utf-8') as f:
+            f.write(json.dumps(data, indent=2, ensure_ascii=False))
         return data
     
     else:
-        try:
-            return json.loads(open(path).read())
-        except:
+        if not os.path.exists(path):
             return {}
+        
+        with open(path, 'rb') as f:
+            return json.loads(f.read())
 
 def sort_dict(dic):
     return {kv[0]:kv[1] for kv in sorted(dic.items(), key=lambda item: item[0].casefold())}
