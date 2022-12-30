@@ -346,8 +346,6 @@ def install_project_file(dir, data, urlslug, world=None):
             pt.test(dir, data)
             base_path = os.path.join(data['path'], pt.folder)
         
-        os.makedirs(base_path, exist_ok=True)
-        
         if project_type == 'resourcepack':
             loader = 'minecraft'
         if project_type == 'shader':
@@ -379,6 +377,12 @@ def install_project_file(dir, data, urlslug, world=None):
             print(f"No version available")
         
         else:
+            
+            if project_type == 'shader' and 'vanilla' in version_project['loaders']:
+                base_path = os.path.join(data['path'], 'resourcepacks')
+            
+            os.makedirs(base_path, exist_ok=True)
+            
             filename = version_project['filename']
             if world:
                 filename_old = data[project_type].get(world, {}).get(urlslug, None)
