@@ -1,5 +1,5 @@
 # Simple Modrinth Project Manager for Minecraft
-mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders.
+mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders, and support a large type of project (mod, resource packs, shader).
 mcsmp use the packages `requests`.
 
 mcsmp is higly inspire by [Fxomt-III/Minecraft-package-manager](https://github.com/Fxomt-III/Minecraft-package-manager).

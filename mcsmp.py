@@ -55,7 +55,7 @@ def mcsmp(dir, data=None):
         if k not in data:
             data[k] = None
             edited = True
-    for k in ['resourcepack', 'mod']:
+    for k in project_types.keys():
         if k not in data:
             data[k] = {}
             edited = True
@@ -138,6 +138,7 @@ ProjectType = namedtuple('ProjectType', 'folder test')
 project_types = {
     'resourcepack':ProjectType('resourcepacks', test_version),
     'mod':ProjectType('mods', test_loader),
+    'shader':ProjectType('shaderpacks', test_version),
 }
 loaders_alt = {'quilt': ['fabric']}
 
@@ -265,24 +266,33 @@ def install_project_file(dir, data, urlslug):
         
         if project_type == 'resourcepack':
             loader = 'minecraft'
+        if project_type == 'shader':
+            loader = ''
         
         pt = project_types[project_type]
         pt.test(dir, data)
         base_path = os.path.join(data['path'], pt.folder)
         os.makedirs(base_path, exist_ok=True)
         
-        all_loaders = [loader]+loaders_alt.get(loader, [])
-        params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
+        if loader:
+            all_loaders = [loader]+loaders_alt.get(loader, [])
+        else:
+            all_loaders = []
+        
+        params = {'game_versions':f'["{game_version}"]', 'loaders':'['+','.join(['"'+l+'"' for l in all_loaders])+']'}
         versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
         
         version_project = None
-        for _loader in all_loaders:
-            for v in versions:
-                if _loader in v['loaders']:
-                    version_project = v['files'][0]
+        if all_loaders:
+            for _loader in all_loaders:
+                for v in versions:
+                    if _loader in v['loaders']:
+                        version_project = v['files'][0]
+                        break
+                if version_project:
                     break
-            if version_project:
-                break
+        else:
+            version_project = versions[0]['files'][0]
         
         if not version_project:
             print(f"No version available")
