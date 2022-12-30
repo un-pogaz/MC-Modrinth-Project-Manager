@@ -86,6 +86,13 @@ mcsmp info <PROJECT>
 
 <br>
 
+The api print the json of a Modrinth-API request in the terminal. Useful for debugging:
+```bat
+mcsmp api URL [-- PARAMS [PARAMS]]
+```
+
+<br>
+
 examples:
 ```bat
 mcsmp add fabric-1.18.2 C:\Users\ME\AppData\Roaming\.minecraft

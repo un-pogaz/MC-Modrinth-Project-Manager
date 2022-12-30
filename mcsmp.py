@@ -209,8 +209,8 @@ def path_enable(data, type, urlslug, enable):
         os.rename(path_filename, path_disabled(path_filename))
 
 
-def link(wanted):
-    return f'https://api.modrinth.com/v2/{wanted}'
+def link(*wanted):
+    return f'https://api.modrinth.com/v2/' + '/'.join(wanted)
 
 def project_install(dir, urlslug):
     data = mcsmp(dir)
@@ -243,7 +243,7 @@ def project_update(dir):
 
 def install_project_file(dir, data, urlslug):
     urlslug = urlslug.lower()
-    urllink = link(f'project/{urlslug}')
+    urllink = link('project', urlslug)
     game_version = data['game_version']
     loader = data['loader']
     
@@ -273,7 +273,7 @@ def install_project_file(dir, data, urlslug):
         
         all_loaders = [loader]+loaders_alt.get(loader, [])
         params = {'game_versions':f'["{game_version}"]', 'loaders':'["'+'","'.join(all_loaders)+'"]'}
-        versions = json.loads(requests.get(link(f"project/{project_id}/version"), params=params).content)
+        versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
         
         version_project = None
         for _loader in all_loaders:
@@ -378,7 +378,7 @@ def project_enable(dir, urlslug, enable):
 
 def project_info(urlslug):
     urlslug = urlslug.lower()
-    urllink = link("project/"+urlslug)
+    urllink = link('project', urlslug)
     url = requests.get(urllink)
     if url.ok:
         data = json.loads(url.content)
@@ -409,6 +409,39 @@ def project_info(urlslug):
         print(f"Error during url request, the project {urlslug} probably doesn't exist")
 
 
+def print_api(base_url, args):
+    params = {}
+    if '--' in args:
+        idx = args.index('--')
+        for p in args[idx+1:]:
+            if not '=' in p:
+                params[p.replace(' ', '').strip()] = ''
+            else:
+                q,p = tuple(p.split('=',1))
+                q = q.replace(' ', '').strip()
+                p = p.replace(' ', '').strip()
+                if q == 'facets':
+                    p = p.replace('"','').strip('[]').split('],[')
+                    for i in range(len(p)):
+                        p[i] = '"'+ '","'.join(p[i].split(',')) +'"'
+                    p = '[['+ '],['.join(p) +']]'
+                    params[q] = p
+                elif q in ['categories','display_categories','game_versions','loaders','ids','versions','gallery','hashes','primary_file','file_parts']:
+                    p = p.replace('"','').strip('[]').split(',')
+                    p = '["'+ '","'.join(p) +'"]'
+                    params[q] = p
+                else:
+                    params[q] = p
+    
+    urllink = link(base_url)
+    url = requests.get(urllink, params=params)
+    if not url.ok:
+        print(f"<error: {urllink} >")
+    else:
+        print(json.dumps(json.loads(url.content), indent=2))
+    pass
+
+
 # mcsmp install fabric-18.2 sodium
 # mcsmp <CMD> [<DIR> [<PROJECT>]]
 
@@ -424,12 +457,14 @@ def usage():
     print("    version <DIR> <ID>       - set Minecraft version of a directory")
     print("    loader <DIR> <ID>        - define the loader of the directory")
     print()
-    print("    check <DIR> <PROJECT>       - check if the project is installed")
-    print("    install <DIR> <PROJECT>     - install/update a project")
-    print("    enable <DIR> <PROJECT>      - enable a project")
-    print("    disable <DIR> <PROJECT>     - disable a project")
-    print("    remove <DIR> <PROJECT>      - remove a project")
-    print("    update <DIR>                - update all projects in a directory")
+    print("    check <DIR> <PROJECT>        - check if the project is installed")
+    print("    install <DIR> <PROJECT>      - install/update a project")
+    print("    enable <DIR> <PROJECT>       - enable a project")
+    print("    disable <DIR> <PROJECT>      - disable a project")
+    print("    remove <DIR> <PROJECT>       - remove a project")
+    print("    update <DIR>                 - update all projects in a directory")
+    print()
+    print("    api URL [-- PARAMS [PARAMS]]     - print a API request")
     print()
     print("DIR is the target directory to manage")
     print("PROJECT is the slug-name of the wanted project")
@@ -472,6 +507,9 @@ def main():
         project_remove(get_arg_n(2), get_arg_n(3))
     elif cmd == 'update':
         project_update(get_arg_n(2))
+    
+    elif cmd == 'api':
+        print_api(get_arg_n(2), argv[3:])
     else:
         usage()
 
