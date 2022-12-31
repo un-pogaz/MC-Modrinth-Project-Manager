@@ -330,22 +330,28 @@ def install_project_file(dir, data, urlslug, world=None):
         project_id = project_data['id']
         project_type = project_data['project_type']
         
-        if project_type not in project_types:
-            print(f"The project type of {urlslug} is unknow: {project_type}")
-            return None
-        
-        print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
-        
         if world:
             if project_type == 'mod':
                 project_type = 'datapack'
+            
+            if project_type not in project_types_world:
+                print(f"The project {urlslug} has a type '{project_type}' incompatible with the argument [World]")
+                return False
+            
             pt = project_types_world[project_type]
             pt.test(dir, data, world)
             base_path = os.path.join(data['path'], 'saves', world, pt.folder)
         else:
+            
+            if project_type not in project_types:
+                print(f"The project {urlslug} has a type '{project_type}' incompatible for a global install")
+                return False
+            
             pt = project_types[project_type]
             pt.test(dir, data)
             base_path = os.path.join(data['path'], pt.folder)
+        
+        print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
         
         if project_type == 'resourcepack':
             loader = 'minecraft'
