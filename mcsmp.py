@@ -527,7 +527,12 @@ def project_info(urlslug):
     url = requests.get(urllink)
     if url.ok:
         data = json.loads(url.content)
-        data_display = data['title'] + ' ' + data['project_type']
+        try:
+            datapack = json.loads(requests.get(link('project', urlslug, 'version'), params={'loaders':'["datapack"]'}).content)
+        except:
+            datapack = []
+        
+        data_display = data['title'] + ' ' + (data['project_type'] if not datapack else 'datapack')
         print('+'+'-'*(len(data_display)+2)+'+')
         print('| ' + data_display + ' |')
         print('+'+'-'*(len(data_display)+2)+'+\n')
