@@ -162,6 +162,7 @@ project_types_world = {
     'datapack':ProjectType('datapacks', test_world),
 }
 loaders_alt = {'quilt': ['fabric']}
+loaders_mods_swap = {'quilt': {'fabric-api':'qsl'}}
 
 def test_filename(path_filename):
     enabled = True
@@ -282,7 +283,7 @@ def project_update(dir, world=None):
     if world:
         for type, pt in project_types_world.items():
             if pt.test(dir, data, world, False):
-                if world in data[type]:
+                if world in list(data[type].keys()):
                     for urlslug in data[type][world]:
                         rslt = install_project_file(dir, data, urlslug, world)
                         if rslt is None:
@@ -297,7 +298,7 @@ def project_update(dir, world=None):
     else:
         for type, pt in project_types.items():
             if pt.test(dir, data, False):
-                for urlslug in data[type]:
+                for urlslug in list(data[type].keys()):
                     rslt = install_project_file(dir, data, urlslug)
                     if rslt is None:
                         errors.append(urlslug)
@@ -446,6 +447,44 @@ def install_project_file(dir, data, urlslug, world=None):
         
         if disabled:
             os.rename(path_filename, path_disabled(path_filename))
+        
+        def get_id_slug(dependencie):
+            try:
+                versionid = dependencie['version_id']
+                if versionid:
+                    projectid = json.loads(requests.get(link('version', versionid)).content)['project_id']
+                else:
+                    projectid = dependencie['project_id']
+                
+                full_project = json.loads(requests.get(link('project', projectid)).content)
+                return full_project['slug']
+            except:
+                return None
+        def is_installed(dependencie):
+            for type in project_types:
+                if dependencie in data[type]:
+                    return True
+            
+            return False
+        
+        dependencies = [get_id_slug(d) for d in version_project['dependencies'] if d['dependency_type'] in ['required', 'embedded']]
+        dependencies = {d for d in dependencies if d}
+        for kv in loaders_mods_swap.get(loader, {}).items():
+            if kv[0] in dependencies:
+                dependencies.remove(kv[0])
+                dependencies.add(kv[1])
+        dependencies = sorted(dependencies)
+        if dependencies:
+            if world:
+                print('The project has dependencies, unfortunately, it is not possible to install them in a WORLD command mode')
+                print('You have install them manually: ' + ', '.join(dependencies))
+            else:
+                dependencies = [d for d in dependencies if not is_installed(d)]
+                if dependencies:
+                    print('Installation of dependencies: ' + ', '.join(dependencies))
+                    for d in dependencies:
+                        if install_project_file(dir, data, d):
+                            installed = True
         
         return installed
     
