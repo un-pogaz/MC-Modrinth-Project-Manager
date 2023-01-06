@@ -325,130 +325,131 @@ def install_project_file(dir, data, urlslug, world=None):
         print(f"Error during url request, the project {urlslug} probably doesn't exist")
         return None
     
-    if url.ok:
-        project_data = json.loads(url.content)
-        project_id = project_data['id']
-        project_type = project_data['project_type']
+    
+    project_data = json.loads(url.content)
+    project_id = project_data['id']
+    project_type = project_data['project_type']
+    
+    if world:
+        if project_type == 'mod':
+            project_type = 'datapack'
         
-        if world:
-            if project_type == 'mod':
-                project_type = 'datapack'
-            
-            if project_type not in project_types_world:
-                print(f"The project {urlslug} has a type '{project_type}' incompatible with the argument [World]")
-                return False
-            
-            pt = project_types_world[project_type]
-            pt.test(dir, data, world)
-            base_path = os.path.join(data['path'], 'saves', world, pt.folder)
-        else:
-            
-            if project_type not in project_types:
-                print(f"The project {urlslug} has a type '{project_type}' incompatible for a global install")
-                return False
-            
-            pt = project_types[project_type]
-            pt.test(dir, data)
-            base_path = os.path.join(data['path'], pt.folder)
+        if project_type not in project_types_world:
+            print(f"The project {urlslug} has a type '{project_type}' incompatible with the argument [World]")
+            return False
         
-        print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
+        pt = project_types_world[project_type]
+        pt.test(dir, data, world)
+        base_path = os.path.join(data['path'], 'saves', world, pt.folder)
+    else:
         
-        if project_type == 'resourcepack':
-            loader = 'minecraft'
-        if project_type == 'shader':
-            loader = ''
-        if project_type == 'datapack':
-            loader = 'datapack'
+        if project_type not in project_types:
+            print(f"The project {urlslug} has a type '{project_type}' incompatible for a global install")
+            return False
         
-        if loader:
-            all_loaders = [loader]+loaders_alt.get(loader, [])
-        else:
-            all_loaders = []
-        
-        params = {'game_versions':f'["{game_version}"]', 'loaders':'['+','.join(['"'+l+'"' for l in all_loaders])+']'}
-        versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
-        
-        version_project = None
-        if all_loaders:
-            for _loader in all_loaders:
-                for v in versions:
-                    if _loader in v['loaders']:
-                        version_project = v['files'][0]
-                        break
-                if version_project:
+        pt = project_types[project_type]
+        pt.test(dir, data)
+        base_path = os.path.join(data['path'], pt.folder)
+    
+    print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
+    
+    if project_type == 'resourcepack':
+        loader = 'minecraft'
+    if project_type == 'shader':
+        loader = ''
+    if project_type == 'datapack':
+        loader = 'datapack'
+    
+    if loader:
+        all_loaders = [loader]+loaders_alt.get(loader, [])
+    else:
+        all_loaders = []
+    
+    params = {'game_versions':f'["{game_version}"]', 'loaders':'['+','.join(['"'+l+'"' for l in all_loaders])+']'}
+    versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
+    
+    version_project = None
+    if all_loaders:
+        for _loader in all_loaders:
+            for v in versions:
+                if _loader in v['loaders']:
+                    version_project = v
                     break
-        else:
-            version_project = versions[0]['files'][0]
+            if version_project:
+                break
+    else:
+        version_file = versions[0]
+    
+    if not version_project:
+        print(f"No version available")
+    
+    else:
+        version_file = version_project['files'][0]
         
-        if not version_project:
-            print(f"No version available")
+        if project_type == 'shader' and 'vanilla' in version_project['loaders']:
+            base_path = os.path.join(data['path'], 'resourcepacks')
         
+        os.makedirs(base_path, exist_ok=True)
+        
+        filename = version_file['filename']
+        if world:
+            filename_old = data[project_type].get(world, {}).get(urlslug, None)
         else:
-            
-            if project_type == 'shader' and 'vanilla' in version_project['loaders']:
-                base_path = os.path.join(data['path'], 'resourcepacks')
-            
-            os.makedirs(base_path, exist_ok=True)
-            
-            filename = version_project['filename']
-            if world:
-                filename_old = data[project_type].get(world, {}).get(urlslug, None)
-            else:
-                filename_old = data[project_type].get(urlslug, None)
-            path_filename = os.path.join(base_path, filename)
-            
-            print(f"Got the link for '{filename}'")
-            
-            disabled = False
-            if os.path.exists(path_disabled(path_filename)):
+            filename_old = data[project_type].get(urlslug, None)
+        path_filename = os.path.join(base_path, filename)
+        
+        print(f"Got the link for '{filename}'")
+        
+        disabled = False
+        if os.path.exists(path_disabled(path_filename)):
+            disabled = True
+            os.rename(path_disabled(path_filename), path_filename)
+        
+        if filename_old:
+            path_filename_old = os.path.join(base_path, filename_old)
+            if os.path.exists(path_disabled(path_filename_old)):
                 disabled = True
-                os.rename(path_disabled(path_filename), path_filename)
+                os.rename(path_disabled(path_filename_old), path_filename_old)
             
-            if filename_old:
-                path_filename_old = os.path.join(base_path, filename_old)
-                if os.path.exists(path_disabled(path_filename_old)):
-                    disabled = True
-                    os.rename(path_disabled(path_filename_old), path_filename_old)
-                
-            installed = False
-            if filename_old and os.path.exists(path_filename) and filename_old == filename and os.path.getsize(path_filename) == version_project['size']:
-                if world:
-                    print(f'The project {urlslug} is already up to date in the world "{world}" of "{dir}"')
-                else:
-                    print(f'The project {urlslug} is already up to date in "{dir}"')
-            
+        installed = False
+        if filename_old and os.path.exists(path_filename) and filename_old == filename and os.path.getsize(path_filename) == version_file['size']:
+            if world:
+                print(f'The project {urlslug} is already up to date in the world "{world}" of "{dir}"')
             else:
-                print("Downloading project...")
-                url = requests.get(version_project['url'])
-                if url.ok:
-                    with open(path_filename, 'wb') as f:
-                        f.write(url.content)
-                else:
-                    print("Downloading fail!")
-                    return None
-                
-                if filename_old and filename_old != filename:
-                    try:
-                        os.remove(path_filename_old)
-                    except:
-                        pass
-                
-                if world:
-                    if world not in data[project_type]:
-                        data[project_type][world] = {}
-                    data[project_type][world][urlslug] = filename
-                    print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{dir}"')
-                else:
-                    data[project_type][urlslug] = filename
-                    print(f'Done! The project "{urlslug}" has been installed in "{dir}"')
-                installed = True
-            
-            if disabled:
-                os.rename(path_filename, path_disabled(path_filename))
-            
-            return installed
+                print(f'The project {urlslug} is already up to date in "{dir}"')
         
-        return False
+        else:
+            print("Downloading project...")
+            url = requests.get(version_file['url'])
+            if url.ok:
+                with open(path_filename, 'wb') as f:
+                    f.write(url.content)
+            else:
+                print("Downloading fail!")
+                return None
+            
+            if filename_old and filename_old != filename:
+                try:
+                    os.remove(path_filename_old)
+                except:
+                    pass
+            
+            if world:
+                if world not in data[project_type]:
+                    data[project_type][world] = {}
+                data[project_type][world][urlslug] = filename
+                print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{dir}"')
+            else:
+                data[project_type][urlslug] = filename
+                print(f'Done! The project "{urlslug}" has been installed in "{dir}"')
+            installed = True
+        
+        if disabled:
+            os.rename(path_filename, path_disabled(path_filename))
+        
+        return installed
+    
+    return False
 
 
 def project_remove(dir, urlslug, world=None):
