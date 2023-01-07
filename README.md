@@ -88,7 +88,14 @@ mcsmp info <PROJECT>
 
 The api print the json of a Modrinth-API request in the terminal. Useful for debugging:
 ```bat
-mcsmp api URL [-- PARAMS [PARAMS]]
+mcsmp api URL [-- PARAMS ...]
+```
+
+<br>
+
+The last command is to clear the cache, or just some specific files in the cache:
+```bat
+mcsmp clear-cache [FILE ...]
 ```
 
 <br>

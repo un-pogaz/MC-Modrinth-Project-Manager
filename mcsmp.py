@@ -7,6 +7,7 @@ import requests
 requests = requests.Session()
 requests.headers.update({'User-Agent':'un-pogaz/MC-Modrinth-Project-Manager (un.pogaz@gmail.com)'})
 
+
 def _json(path, data=None):
     if data is not None:
         with open(path, 'wt', newline='\n', encoding='utf-8') as f:
@@ -78,6 +79,105 @@ def mcsmp(dir, data=None):
     
     data['path'] = path
     return data
+
+def safe_del(path):
+    from shutil import rmtree
+    
+    def remove(a):
+        pass
+    
+    if os.path.exists(path):
+        if os.path.isfile(path):
+            remove = os.remove
+        if os.path.isdir(path):
+            remove = rmtree
+        if os.path.islink(path):
+            remove = os.unlink
+    
+    try:
+        remove(path)
+    except Exception as ex:
+        pass
+
+class Cache:
+    _cachedir = os.path.abspath('.cache')
+    def _make_cachedir():
+        cache_version = os.path.join(Cache._cachedir, '.v1')
+        if not os.path.exists(cache_version):
+            Cache.clear_cache()
+        
+        if not os.path.exists(Cache._cachedir):
+            os.makedirs(Cache._cachedir, exist_ok=True)
+            with open(cache_version, 'wt', newline='\n', encoding='utf-8') as f:
+                f.write('')
+    
+    def clear_cache(files=[]):
+        if files:
+            for f in files:
+                safe_del(os.path.join(Cache._cachedir, f))
+            
+            print('Cache files cleaned: ' + ', '.join(files))
+        else:
+            safe_del(Cache._cachedir)
+            print('Cache folder cleaned')
+    
+    
+    _project = None
+    _project_path = os.path.join(_cachedir, 'project')
+    
+    def _read_project():
+        if not Cache._project:
+            Cache._project = _json(Cache._project_path)
+    
+    def add_project(id, slug):
+        Cache._read_project()
+        if id not in Cache._project:
+            Cache._project[id] = slug
+            Cache._make_cachedir()
+            _json(Cache._project_path, Cache._project)
+    
+    def get_project(id):
+        Cache._read_project()
+        return Cache._project.get(id, None)
+    
+    
+    _version = None
+    _version_path = os.path.join(_cachedir, 'version')
+    
+    def _read_version():
+        if not Cache._version:
+            Cache._version = _json(Cache._version_path)
+    
+    def add_version(id, slug):
+        Cache._read_version()
+        if id not in Cache._version:
+            Cache._version[id] = slug
+            Cache._make_cachedir()
+            _json(Cache._version_path, Cache._version)
+    
+    def get_version(id):
+        Cache._read_version()
+        return Cache._version.get(id, None)
+    
+    
+    _slug = None
+    _slug_path = os.path.join(_cachedir, 'slug')
+    
+    def _read_slug():
+        if not Cache._slug:
+            Cache._slug = _json(Cache._slug_path)
+    
+    def add_slug(slug, id, type):
+        Cache._read_slug()
+        if slug not in Cache._slug:
+            Cache._slug[slug] = {'id':id,'project_type':type}
+            Cache._make_cachedir()
+            _json(Cache._slug_path, Cache._slug)
+    
+    def get_slug(slug):
+        Cache._read_slug()
+        return Cache._slug.get(slug, None)
+
 
 
 def dir_add(dir, path):
@@ -317,19 +417,24 @@ def project_update(dir, world=None):
 
 def install_project_file(dir, data, urlslug, world=None):
     urlslug = urlslug.lower()
-    urllink = link('project', urlslug)
     game_version = data['game_version']
     loader = data['loader']
     
-    url = requests.get(urllink)
-    if not url.ok:
-        print(f"Error during url request, the project {urlslug} probably doesn't exist")
-        return None
+    project_data = Cache.get_slug(urlslug)
+    if not project_data:
+        urllink = link('project', urlslug)
+        url = requests.get(urllink)
+        if not url.ok:
+            print(f"Error during url request, the project {urlslug} probably doesn't exist")
+            return None
+        
+        project_data = json.loads(url.content)
     
-    
-    project_data = json.loads(url.content)
     project_id = project_data['id']
     project_type = project_data['project_type']
+    Cache.add_project(project_id, urlslug)
+    Cache.add_slug(urlslug, project_id, project_type)
+    
     
     if world:
         if project_type == 'mod':
@@ -379,12 +484,13 @@ def install_project_file(dir, data, urlslug, world=None):
             if version_project:
                 break
     else:
-        version_file = versions[0]
+        version_project = versions[0]
     
     if not version_project:
         print(f"No version available")
     
     else:
+        Cache.add_version(version_project['id'], urlslug)
         version_file = version_project['files'][0]
         
         if project_type == 'shader' and 'vanilla' in version_project['loaders']:
@@ -450,16 +556,34 @@ def install_project_file(dir, data, urlslug, world=None):
         
         def get_id_slug(dependencie):
             try:
+                v_slug = None
+                p_slug = None
                 versionid = dependencie['version_id']
+                
                 if versionid:
-                    projectid = json.loads(requests.get(link('version', versionid)).content)['project_id']
+                    v_slug = Cache.get_version(versionid)
+                    if not v_slug:
+                        projectid = json.loads(requests.get(link('version', versionid)).content)['project_id']
+                    else:
+                        projectid = None
                 else:
                     projectid = dependencie['project_id']
                 
-                full_project = json.loads(requests.get(link('project', projectid)).content)
-                return full_project['slug']
+                if projectid:
+                    p_slug = Cache.get_project(projectid)
+                
+                if not p_slug and projectid:
+                    full_project = json.loads(requests.get(link('project', projectid)).content)
+                    p_slug = full_project['slug']
+                    Cache.add_project(projectid, p_slug)
+                
+                if not v_slug and versionid and p_slug:
+                    Cache.add_version(versionid, p_slug)
+                
+                return p_slug or v_slug
             except:
                 return None
+        
         def is_installed(dependencie):
             for type in project_types:
                 if dependencie in data[type]:
@@ -652,8 +776,9 @@ def usage():
     print("    remove <DIR> <PROJECT>       - remove a project")
     print("    update <DIR>                 - update all projects in a directory")
     print()
-    print("    info <PROJECT>                   - show info about a project")
-    print("    api URL [-- PARAMS [PARAMS]]     - print a API request")
+    print("    info <PROJECT>               - show info about a project")
+    print("    api URL [-- PARAMS ...]]     - print a API request")
+    print("    clear-cache [FILE ...]]     - clear the cache, or specific cache files")
     print()
     print("DIR is the target directory to manage")
     print("PROJECT is the slug-name of the wanted project")
@@ -700,6 +825,8 @@ def main():
         project_info(get_arg_n(2))
     elif cmd == 'api':
         print_api(get_arg_n(2), argv[3:])
+    elif cmd == 'clear-cache':
+        Cache.clear_cache(argv[2:])
     else:
         usage()
 

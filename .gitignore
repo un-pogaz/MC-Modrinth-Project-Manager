@@ -9,4 +9,5 @@ zz*
 *.lnk
 
 __pycache__
+.cache
 mcsmp.json
