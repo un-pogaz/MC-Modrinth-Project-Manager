@@ -96,11 +96,11 @@ def safe_del(path):
     
     try:
         remove(path)
-    except Exception as ex:
+    except:
         pass
 
 class Cache:
-    _cachedir = os.path.abspath('.cache')
+    _cachedir = os.path.join(os.path.dirname(argv[0]), '.cache')
     def _make_cachedir():
         cache_version = os.path.join(Cache._cachedir, '.v1')
         if not os.path.exists(cache_version):
@@ -111,7 +111,7 @@ class Cache:
             with open(cache_version, 'wt', newline='\n', encoding='utf-8') as f:
                 f.write('')
     
-    def clear_cache(files=[]):
+    def clear_cache(files=None):
         if files:
             for f in files:
                 safe_del(os.path.join(Cache._cachedir, f))
@@ -119,7 +119,8 @@ class Cache:
             print('Cache files cleaned: ' + ', '.join(files))
         else:
             safe_del(Cache._cachedir)
-            print('Cache folder cleaned')
+            if files is not None:
+                print('Cache folder cleaned')
     
     
     _project = None
