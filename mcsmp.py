@@ -179,6 +179,22 @@ class Cache:
         Cache._read_slug()
         return Cache._slug.get(slug, None)
 
+hash_algo = 'sha1'
+def hash_file(path):
+    import hashlib
+    
+    if os.path.exists(path):
+        algo = hashlib.new(hash_algo)
+        
+        with open(path, 'rb') as f:
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                algo.update(data)
+        
+        return algo.hexdigest()
+
 
 
 def dir_add(dir, path):
@@ -520,7 +536,7 @@ def install_project_file(dir, data, urlslug, world=None):
                 os.rename(path_disabled(path_filename_old), path_filename_old)
             
         installed = False
-        if filename_old and os.path.exists(path_filename) and filename_old == filename and os.path.getsize(path_filename) == version_file['size']:
+        if filename_old and os.path.exists(path_filename) and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
             if world:
                 print(f'The project {urlslug} is already up to date in the world "{world}" of "{dir}"')
             else:
@@ -756,8 +772,6 @@ def print_api(base_url, args):
     pass
 
 
-# mcsmp install fabric-18.2 sodium
-# mcsmp <CMD> [<DIR> [<PROJECT>]]
 
 def usage():
     print(os.path.basename(argv[0]) + " <CMD> [DIR [PROJECT]] [[WORLD]]")
