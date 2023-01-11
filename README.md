@@ -1,15 +1,15 @@
 # <img style="vertical-align:middle;margin-right:.5em;" alt="mcsmp logo" src="https://raw.githubusercontent.com/un-pogaz/MC-Modrinth-Project-Manager/main/mcsmp.png"/>Simple Modrinth Project Manager for Minecraft
-mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders, and support a large type of project (mod, resource packs, shader, datapack).
+mcsmp is a light CLI project manager that gets mods and resourcepacks from Modrinth. One of it's strengths is that it can handle multiple folders, and support a large type of project (mod, resource packs, shader, datapack).\
 mcsmp use the packages `requests` as dependencies.
 
 mcsmp is inspire by [Fxomt-III/Minecraft-package-manager](https://github.com/Fxomt-III/Minecraft-package-manager).
 
-Setup:
-First, install Minecraft with your favorite laucher.
-Second, install the mod loader that you use.
+Setup:\
+First, install Minecraft with your favorite laucher.\
+Second, install the mod loader that you use.\
 Then, install the python script in the folder of your choice.
 
-After installing mcsmp, you have to define a .minecraft folder to manage.
+After installing mcsmp, you have to define a .minecraft folder to manage.\
 To add this, use this command:
 ```bat
 mcsmp add <DIRECTORY_NAME> <PATH TO THE .MINECRAFT FOLDER>
@@ -38,10 +38,10 @@ To install a project, use this command:
 ```bat
 mcsmp install <DIRECTORY_NAME> <PROJECT>
 ```
-To instal a project, you need to recover and use its slug-name.
-The slug-name is usually the name of the project you are looking for, in lower case and with hyphens (-) instead of space. For example "Sodium" and "Sodium Extra" have respectively the slug-name `sodium` and `sodium-extra`.
-But this is not always the case! For example, the "Iris Shaders" has as slug-name `iris` and not `iris-shaders`. One way to get the slug-name of a project is to regad its name in the modrinth link: https://modrinth.com/mod/iris. This is sometimes more devious as [FerriteCore](https://modrinth.com/mod/ferrite-core) where the slug-name is `ferrite-core`. Caution is therefore required.
-If the project has dependencies, these will also be installed.
+To instal a project, you need to recover and use its slug-name.\
+The slug-name is usually the name of the project you are looking for, in lower case and with hyphens (-) instead of space. For example "Sodium" and "Sodium Extra" have respectively the slug-name `sodium` and `sodium-extra`.\
+But this is not always the case! For example, the "Iris Shaders" has as slug-name `iris` and not `iris-shaders`. One way to get the slug-name of a project is to regad its name in the modrinth link: https://modrinth.com/mod/iris. This is sometimes more devious as [FerriteCore](https://modrinth.com/mod/ferrite-core) where the slug-name is `ferrite-core`. Caution is therefore required.\
+If the project has dependencies, these will also be installed.\
 Note, to update a project you just have to do this command again.
 
 <br>
@@ -116,7 +116,7 @@ mcsmp info sodium
 
 <br>
 
-To use mcsmp with datapacks, you must also specify the world you targeting by adding its folder name at the end of the command. Commands that can support the "world last argument" for datapack are: `list`, `check`, `install`, `enable`, `disable`, `remove`, `update`
+To use mcsmp with datapacks, you must also specify the world you targeting by adding its folder name at the end of the command. Commands that can support the "world last argument" for datapack are: `list`, `check`, `install`, `enable`, `disable`, `remove`, `update`\
 examples, with the world "New Start":
 ```bat
 mcsmp check fabric-1.18.2 rpgtitles "New Start"
