@@ -494,7 +494,7 @@ def install_project_file(dir, data, urlslug, world=None):
         Cache.add_version(version_project['id'], urlslug)
         version_file = version_project['files'][0]
         
-        if project_type == 'shader' and 'vanilla' in version_project['loaders']:
+        if project_type == 'shader' and version_project['loaders'][0] in ['vanilla', 'canvas']:
             base_path = os.path.join(data['path'], 'resourcepacks')
         
         os.makedirs(base_path, exist_ok=True)
