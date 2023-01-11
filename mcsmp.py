@@ -717,14 +717,24 @@ def project_info(urlslug):
         print('+'+'-'*(len(data_display)+2)+'+')
         print('| ' + data_display + ' |')
         print('+'+'-'*(len(data_display)+2)+'+\n')
-
+        
+        def clear_date(date):
+            if '.' in date:
+                date = date[:date.find('.')]
+            return date
+        published = clear_date(data['published'])
+        updated = clear_date(data['updated'])
         print(data['description'])
         print(
-            f"\nThe {data_display} was published on {data['published']}, and was last updated on {data['updated']},\nit has {data['downloads']} downloads and has {data['followers']} followers.")
+            f"\nThe {data_display} was published on {published}, and was last updated on {updated},\nit has {data['downloads']} downloads and has {data['followers']} followers.")
         print("\nCategories:")
         for i in data['categories']:
             print('    ' + i)
-            
+        if data['additional_categories']:
+            print("\nAdditional categories:")
+            for i in data['additional_categories']:
+                print('    ' + i)
+        
         print("\nWays to donate:")
         for i in data['donation_urls']:
             print(f'    {i["platform"]}: {i["url"]}')
