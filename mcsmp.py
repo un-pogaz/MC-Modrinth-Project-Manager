@@ -500,7 +500,7 @@ def install_project_file(dir, data, urlslug, world=None):
                     break
             if version_project:
                 break
-    else:
+    elif versions:
         version_project = versions[0]
     
     if not version_project:
@@ -536,7 +536,7 @@ def install_project_file(dir, data, urlslug, world=None):
                 os.rename(path_disabled(path_filename_old), path_filename_old)
             
         installed = False
-        if filename_old and os.path.exists(path_filename) and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
+        if filename_old and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
             if world:
                 print(f'The project {urlslug} is already up to date in the world "{world}" of "{dir}"')
             else:
@@ -562,11 +562,25 @@ def install_project_file(dir, data, urlslug, world=None):
                 if world not in data[project_type]:
                     data[project_type][world] = {}
                 data[project_type][world][urlslug] = filename
+                
                 print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{dir}"')
             else:
                 data[project_type][urlslug] = filename
                 print(f'Done! The project "{urlslug}" has been installed in "{dir}"')
             installed = True
+        
+        if world:
+            if len(version_project['files']) >= 2:
+                assets_file = version_project['files'][1]
+                assets_path = os.path.join(data['path'], 'resourcepacks', assets_file['filename'])
+                if hash_file(assets_path) != assets_file['hashes'][hash_algo]:
+                    print("Downloading additional assets...")
+                    url = requests.get(assets_file['url'])
+                    if url.ok:
+                        with open(assets_path, 'wb') as f:
+                            f.write(url.content)
+                    else:
+                        print("Downloading additional assets fail!")
         
         if disabled:
             os.rename(path_filename, path_disabled(path_filename))
