@@ -29,21 +29,21 @@ def root(data=None):
         data = sort_dict(data)
     return sort_dict(_json('mcsmp.json', data))
 
-def _mcsmp(path):
+def mcsmp_path(path):
     return os.path.join(path, '.mcsmp.json')
-def mcsmp(dir, data=None):
+def mcsmp(dir, data=None, exit_if_error=True):
     path = root().get(dir, None)
     
     if not path:
         print(f'The directory "{dir}" his not defined')
-        exit()
+        return exit() if exit_if_error else None
     
     if not os.path.exists(path):
         print(f'The path "{path}" of the directory "{dir}" doesn\'t exist')
-        exit()
+        return exit() if exit_if_error else None
     
     edited = False
-    data_path = _mcsmp(path)
+    data_path = mcsmp_path(path)
     if data is not None:
         edited = True
     else:
@@ -197,7 +197,7 @@ def hash_file(path):
 
 
 
-def dir_add(dir, path):
+def directory_add(dir, path):
     path = os.path.abspath(path).replace('\\', '/')
     if not os.path.exists(path):
         print(f'The path "{path}" doesn\'t exist')
@@ -218,8 +218,9 @@ def dir_add(dir, path):
     root(r)
     
     if path_old and path_old != path:
-        _json(_mcsmp(path), _json(_mcsmp(path_old)))
-        os.remove(_mcsmp(path_old))
+        if not os.path.exists(path):
+            _json(mcsmp_path(path), _json(mcsmp_path(path_old)))
+        safe_del(mcsmp_path(path_old))
     
     data = mcsmp(dir)
     
@@ -231,18 +232,35 @@ def dir_add(dir, path):
     elif not data['loader']:
         print(f"Don't forget to set a 'loader'")
 
+def directory_remove(dir):
+    r = root()
+    if dir in r:
+        del r[dir]
+        root(r)
+        print(f"The directory {dir} has been removed")
+    else:
+        print(f"No directory {dir} defined to remove")
 
-def dir_version(dir, version):
-    data = mcsmp(dir)
-    data['game_version'] = version
-    print(f'Directorie "{dir}" set to the version {version}')
-    mcsmp(dir, data)
 
-def dir_loader(dir, loader):
+def dir_version(dir, version=None):
     data = mcsmp(dir)
-    data['loader'] = loader.lower()
-    print(f'Directorie "{dir}" set to the loader {loader}')
-    mcsmp(dir, data)
+    if version:
+        data['game_version'] = version
+        print(f'Directorie "{dir}" set to the version: {version}')
+        mcsmp(dir, data)
+    else:
+        version = data['game_version']
+        print(f'Directorie "{dir}" is set to the version: {version}')
+
+def dir_loader(dir, loader=None):
+    data = mcsmp(dir)
+    if loader:
+        data['loader'] = loader.lower()
+        print(f'Directorie "{dir}" set to the loader: {loader}')
+        mcsmp(dir, data)
+    else:
+        loader = data['loader']
+        print(f'Directorie "{dir}" is set to the loader: {loader}')
 
 
 def test_version(dir, data, _exit=True):
@@ -295,7 +313,7 @@ def get_print_filename(enabled, present):
     return ('' if enabled else (' [disabled]' if present else ' !!not present!!'))
 
 
-def project_list(dir, world=None):
+def project_list(dir=None, world=None):
     
     def print_basic(name, data):
         path = data['path']
@@ -309,10 +327,15 @@ def project_list(dir, world=None):
             print(f'No directorys has defined')
             return
         for name in r:
-            print_basic(name, mcsmp(name))
+            data = mcsmp(name, exit_if_error=False)
+            if data:
+                print_basic(name, data)
     
     if dir is not None:
-        data = mcsmp(dir)
+        data = mcsmp(dir, exit_if_error=False)
+        if not data:
+            return
+        
         print_basic(dir, data)
         
         if world:
@@ -553,10 +576,7 @@ def install_project_file(dir, data, urlslug, world=None):
                 return None
             
             if filename_old and filename_old != filename:
-                try:
-                    os.remove(path_filename_old)
-                except:
-                    pass
+                safe_del(path_filename_old)
             
             if world:
                 if world not in data[project_type]:
@@ -646,7 +666,7 @@ def install_project_file(dir, data, urlslug, world=None):
     return False
 
 
-def project_remove(dir, urlslug, world=None):
+def project_uninstall(dir, urlslug, world=None):
     urlslug = urlslug.lower()
     data = mcsmp(dir)
     test_version(dir, data)
@@ -656,10 +676,7 @@ def project_remove(dir, urlslug, world=None):
             if world in data[type] and urlslug in data[type][world]:
                 path_filename = os.path.join(data['path'], 'saves', world, pt.folder, data[type][world][urlslug])
                 path_enable(data, type, urlslug, True, world)
-                try:
-                    os.remove(path_filename)
-                except:
-                    pass
+                safe_del(path_filename)
                 
                 del data[type][world][urlslug]
                 mcsmp(dir, data)
@@ -673,10 +690,7 @@ def project_remove(dir, urlslug, world=None):
             if urlslug in data[type]:
                 path_filename = os.path.join(data['path'], pt.folder, data[type][urlslug])
                 path_enable(data, type, urlslug, True)
-                try:
-                    os.remove(path_filename)
-                except:
-                    pass
+                safe_del(path_filename)
                 
                 del data[type][urlslug]
                 mcsmp(dir, data)
@@ -804,20 +818,21 @@ def usage():
     print("    list [DIR]           - show all installed projects in specified directory (mods, resourcepacks and datapacks)")
     print("                         - if no DIR specified, show all defined directory")
     print()
-    print("    add <DIR> <PATH>         - add a directory, the target path must the root .minecraft folder")
-    print("    version <DIR> <ID>       - set Minecraft version of a directory")
-    print("    loader <DIR> <ID>        - define the loader of the directory")
+    print("    directory_add <DIR> <PATH>   - add a directory, the target path must the root /.minecraft/ folder")
+    print("    directory_remove <DIR>       - remove a directory")
+    print("    version <DIR> [ID]           - set Minecraft version of a directory, else show the current if no ID")
+    print("    loader <DIR> [ID]            - define the loader of the directory, else show the current if no ID")
     print()
     print("    check <DIR> <PROJECT>        - check if the project is installed")
     print("    install <DIR> <PROJECT>      - install/update a project")
     print("    enable <DIR> <PROJECT>       - enable a project")
     print("    disable <DIR> <PROJECT>      - disable a project")
-    print("    remove <DIR> <PROJECT>       - remove a project")
+    print("    uninstall <DIR> <PROJECT>    - uninstall a project")
     print("    update <DIR>                 - update all projects in a directory")
     print()
     print("    info <PROJECT>               - show info about a project")
     print("    api URL [-- PARAMS ...]]     - print a API request")
-    print("    clear-cache [FILE ...]]     - clear the cache, or specific cache files")
+    print("    clear-cache [FILE ...]]      - clear the cache, or specific cache files")
     print()
     print("DIR is the target directory to manage")
     print("PROJECT is the slug-name of the wanted project")
@@ -840,12 +855,15 @@ def main():
     elif cmd == 'list':
         project_list(get_arg_n(2, False), get_arg_n(3, False))
         
-    elif cmd == 'add':
-        dir_add(get_arg_n(2), get_arg_n(3))
+    elif cmd == 'directory_add':
+        directory_add(get_arg_n(2), get_arg_n(3))
+    elif cmd == 'directory_remove':
+        directory_remove(get_arg_n(2))
+    
     elif cmd == 'version':
-        dir_version(get_arg_n(2), get_arg_n(3))
+        dir_version(get_arg_n(2), get_arg_n(3, False))
     elif cmd == 'loader':
-        dir_loader(get_arg_n(2), get_arg_n(3))
+        dir_loader(get_arg_n(2), get_arg_n(3, False))
     
     elif cmd == 'check':
         project_check(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
@@ -855,8 +873,8 @@ def main():
         project_enable(get_arg_n(2), get_arg_n(3), True, get_arg_n(4, False))
     elif cmd == 'disable':
         project_enable(get_arg_n(2), get_arg_n(3), False, get_arg_n(4, False))
-    elif cmd == 'remove':
-        project_remove(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
+    elif cmd == 'uninstall':
+        project_uninstall(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
     elif cmd == 'update':
         project_update(get_arg_n(2), get_arg_n(3, False))
     

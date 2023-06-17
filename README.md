@@ -12,7 +12,7 @@ Then, install the python script in the folder of your choice.
 After installing mcsmp, you have to define a .minecraft folder to manage.\
 To add this, use this command:
 ```bat
-mcsmp add <DIRECTORY_NAME> <PATH TO THE .MINECRAFT FOLDER>
+mcsmp directory_add <DIRECTORY_NAME> <PATH TO THE .MINECRAFT FOLDER>
 ```
 
 Once directory are defined, you have to set the Minecraft version assosiated to it, as well as the mod loader used.
@@ -67,7 +67,7 @@ mcsmp disable <DIRECTORY_NAME> <PROJECT>
 
 And removing a project:
 ```bat
-mcsmp remove <DIRECTORY_NAME> <PROJECT>
+mcsmp uninstall <DIRECTORY_NAME> <PROJECT>
 ```
 
 <br>
@@ -102,7 +102,7 @@ mcsmp clear-cache [FILE ...]
 
 examples:
 ```bat
-mcsmp add fabric-1.18.2 C:\Users\ME\AppData\Roaming\.minecraft
+mcsmp directory_add fabric-1.18.2 C:\Users\ME\AppData\Roaming\.minecraft
 mcsmp check fabric-1.18.2 sodium
 mcsmp install fabric-1.18.2 sodium
 mcsmp install fabric-1.18.2 sodium-extra
@@ -116,14 +116,14 @@ mcsmp info sodium
 
 <br>
 
-To use mcsmp with datapacks, you must also specify the world you targeting by adding its folder name at the end of the command. Commands that can support the "world last argument" for datapack are: `list`, `check`, `install`, `enable`, `disable`, `remove`, `update`\
+To use mcsmp with datapacks, you must also specify the world you targeting by adding its folder name at the end of the command. Commands that can support the "world last argument" for datapack are: `list`, `check`, `install`, `enable`, `disable`, `uninstall`, `update`\
 examples, with the world "New Start":
 ```bat
 mcsmp check fabric-1.18.2 rpgtitles "New Start"
 mcsmp install fabric-1.18.2 rpgtitles "New Start"
 mcsmp install fabric-1.18.2 gm4-bat-grenades "New Start"
 mcsmp disable fabric-1.18.2 gm4-bat-grenades "New Start"
-mcsmp remove fabric-1.18.2 gm4-bat-grenades "New Start"
+mcsmp uninstall fabric-1.18.2 gm4-bat-grenades "New Start"
 mcsmp list fabric-1.18.2 "New Start"
 mcsmp update fabric-1.18.2 "New Start"
 ```
