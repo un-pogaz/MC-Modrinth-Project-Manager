@@ -729,6 +729,17 @@ def project_enable(dir, urlslug, enable, world=None):
         print(f'The project {urlslug} is not installed in "{dir}"')
 
 
+def open_dir(dir, world=None):
+    data = mcsmp(dir)
+    path = data['path']
+    if world:
+        if world in data['datapack']:
+            os.path.join(path, 'saves', world)
+        else:
+            print(f'No world "{world}" in directory "{dir}". Opening the directory folder instead.')
+    
+    os.startfile(path)
+
 
 def project_info(urlslug):
     urlslug = urlslug.lower()
@@ -829,6 +840,7 @@ def usage():
     print("    disable <DIR> <PROJECT>      - disable a project")
     print("    uninstall <DIR> <PROJECT>    - uninstall a project")
     print("    update <DIR>                 - update all projects in a directory")
+    print("    open <DIR>                   - open the folder of a directory")
     print()
     print("    info <PROJECT>               - show info about a project")
     print("    api URL [-- PARAMS ...]]     - print a API request")
@@ -836,7 +848,7 @@ def usage():
     print()
     print("DIR is the target directory to manage")
     print("PROJECT is the slug-name of the wanted project")
-    print("WORLD is to target a specific world (datapack), always at the end (last argument)")
+    print("WORLD can be added a the end of many of the commands, to target a specific world (ex. for datapack)")
     exit()
 
 
@@ -877,6 +889,8 @@ def main():
         project_uninstall(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
     elif cmd == 'update':
         project_update(get_arg_n(2), get_arg_n(3, False))
+    elif cmd == 'open':
+        open_dir(get_arg_n(2), get_arg_n(3, False))
     
     elif cmd == 'info':
         project_info(get_arg_n(2))
