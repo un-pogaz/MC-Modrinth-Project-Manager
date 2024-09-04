@@ -2,6 +2,7 @@ from sys import argv
 import os
 import json
 from collections import namedtuple
+from datetime import datetime
 
 import requests
 requests = requests.Session()
@@ -514,17 +515,24 @@ def install_project_file(dir, data, urlslug, world=None):
     params = {'game_versions':f'["{game_version}"]', 'loaders':'['+','.join(['"'+l+'"' for l in all_loaders])+']'}
     versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
     
-    version_project = None
+    valide_versions = []
     if all_loaders:
         for _loader in all_loaders:
             for v in versions:
                 if _loader in v['loaders']:
-                    version_project = v
+                    valide_versions.append(v)
                     break
-            if version_project:
+            if len(valide_versions) == len(all_loaders):
                 break
     elif versions:
-        version_project = versions[0]
+        valide_versions.append(versions[0])
+    
+    version_project = None
+    for v in valide_versions:
+        if not version_project:
+            version_project = v
+        if datetime.fromisoformat(version_project['date_published']) < datetime.fromisoformat(v['date_published']):
+            version_project = v
     
     if not version_project:
         print(f"No version available")
