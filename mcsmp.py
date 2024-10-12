@@ -763,7 +763,8 @@ def project_info(urlslug):
         data_display = data['title'] + ' ' + (data['project_type'] if not datapack else 'datapack')
         print('+'+'-'*(len(data_display)+2)+'+')
         print('| ' + data_display + ' |')
-        print('+'+'-'*(len(data_display)+2)+'+\n')
+        print('+'+'-'*(len(data_display)+2)+'+')
+        print()
         
         def clear_date(date):
             if '.' in date:
