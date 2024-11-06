@@ -1,3 +1,4 @@
+import argparse
 from sys import argv
 import os
 import json
@@ -878,29 +879,27 @@ def project_info_version(urlslug, version=None):
     else:
         print(f"Error during url request, the project {urlslug} probably doesn't exist")
 
-def print_api(base_url, args):
+def print_api(base_url, args=None):
     params = {}
-    if '--' in args:
-        idx = args.index('--')
-        for p in args[idx+1:]:
-            if not '=' in p:
-                params[p.replace(' ', '').strip()] = ''
+    for p in args or []:
+        if not '=' in p:
+            params[p.replace(' ', '').strip()] = ''
+        else:
+            q,p = tuple(p.split('=',1))
+            q = q.replace(' ', '').strip()
+            p = p.replace(' ', '').strip()
+            if q == 'facets':
+                p = p.replace('"','').strip('[]').split('],[')
+                for i in range(len(p)):
+                    p[i] = '"'+ '","'.join(p[i].split(',')) +'"'
+                p = '[['+ '],['.join(p) +']]'
+                params[q] = p
+            elif q in ['categories','display_categories','game_versions','loaders','ids','versions','gallery','hashes','primary_file','file_parts']:
+                p = p.replace('"','').strip('[]').split(',')
+                p = '["'+ '","'.join(p) +'"]'
+                params[q] = p
             else:
-                q,p = tuple(p.split('=',1))
-                q = q.replace(' ', '').strip()
-                p = p.replace(' ', '').strip()
-                if q == 'facets':
-                    p = p.replace('"','').strip('[]').split('],[')
-                    for i in range(len(p)):
-                        p[i] = '"'+ '","'.join(p[i].split(',')) +'"'
-                    p = '[['+ '],['.join(p) +']]'
-                    params[q] = p
-                elif q in ['categories','display_categories','game_versions','loaders','ids','versions','gallery','hashes','primary_file','file_parts']:
-                    p = p.replace('"','').strip('[]').split(',')
-                    p = '["'+ '","'.join(p) +'"]'
-                    params[q] = p
-                else:
-                    params[q] = p
+                params[q] = p
     
     urllink = link(base_url)
     url = requests.get(urllink, params=params)
@@ -910,89 +909,204 @@ def print_api(base_url, args):
         print(json.dumps(json.loads(url.content), indent=2))
     pass
 
+## argparse
+parser = argparse.ArgumentParser(
+    description='Simple Modrinth Project Manager for Minecraft',
+)
+subparsers = parser.add_subparsers(
+    title='commands to execute',
+    metavar='<command>',
+    dest='command',
+    required=True,
+    description='In most case, the command take the form: <command> DIRECTORY PROJECT [WORLD]',
+)
+
+def buid_parser(
+    command: str,
+    help: str,
+    description: str=None,
+    directory: bool=False,
+    project: bool=False,
+    world: bool=False,
+):
+    if not description:
+        description = help[:1].upper()+help[1:]
+    
+    parser = subparsers.add_parser(
+        name=command,
+        help='- '+help,
+        description=description,
+    )
+    
+    if directory:
+        parser.add_argument('directory', metavar='DIRECTORY', type=str, help='name of the target directory')
+    if project:
+        parser.add_argument('project', metavar='PROJECT', type=str, help='slug of the target project')
+    if world:
+        parser.add_argument('world', metavar='WORLD', type=str, nargs='?', help='specific world to target')
+    
+    return parser
 
 
-def usage():
-    print(os.path.basename(argv[0]) + " <CMD> [DIR [PROJECT]] [[WORLD]]")
-    print()
-    print("Commands:")
-    print("    list [DIR]           - show all installed projects in specified directory (mods, resourcepacks and datapacks)")
-    print("                         - if no DIR specified, show all defined directory")
-    print()
-    print("    directory_add <DIR> <PATH>   - add a directory, the target path must the root /.minecraft/ folder")
-    print("    directory_remove <DIR>       - remove a directory")
-    print("    version <DIR> [ID]           - set Minecraft version of a directory, else show the current if no ID")
-    print("    loader <DIR> [ID]            - define the loader of the directory, else show the current if no ID")
-    print()
-    print("    check <DIR> <PROJECT>        - check if the project is installed")
-    print("    install <DIR> <PROJECT>      - install/update a project")
-    print("    enable <DIR> <PROJECT>       - enable a project")
-    print("    disable <DIR> <PROJECT>      - disable a project")
-    print("    uninstall <DIR> <PROJECT>    - uninstall a project")
-    print("    update <DIR>                 - update all projects in a directory")
-    print("    open <DIR>                   - open the folder of a directory")
-    print()
-    print("    info <PROJECT>                   - show info about a project")
-    print("    info-version <PROJECT> [VERSION] - list the version info about a project, or for a specific version")
-    print("    api URL [-- PARAMS ...]]         - print a API request")
-    print("    clear-cache [FILE ...]]          - clear the cache, or specific cache files")
-    print()
-    print("DIR is the target directory to manage")
-    print("PROJECT is the slug-name of the wanted project")
-    print("WORLD can be added a the end of many of the commands, to target a specific world (ex. for datapack)")
-    exit()
+# global
+args_list = buid_parser(
+    command='list',
+    help='show all directory or project of a directory',
+    description='Show configured directory or installed projects in a specified directory',
+)
+args_list.add_argument('directory', metavar='DIRECTORY', type=str, nargs='?', help='dispaly the projects for this directory')
+args_list.add_argument('world', metavar='WORLD', type=str, nargs='?', help='dispaly the datapacks for this world')
 
+# directory setting
+args_directory_add = buid_parser(
+    command='directory-add',
+    help='adding a configured directory',
+    description='Add a directory a minecraft folder that will be contain mods, resourcepacks and datapacks',
+)
+args_directory_add.add_argument('directory', metavar='DIRECTORY', type=str, help='name of the directory')
+args_directory_add.add_argument('path', metavar='PATH', type=str, help='target path of the directory, must the root of a /.minecraft/ folder')
 
-def get_arg_n(idx, required=True):
-    if len(argv) <= idx:
-        if required:
-            usage()
-        else:
-            return None
-    return argv[idx]
+args_directory_remove = buid_parser(
+    command='directory-remove',
+    help='remove a configured directory',
+    description='Remove a configured directory from the setting',
+)
+args_directory_add.add_argument('directory', metavar='DIRECTORY', type=str, help='name of a directory')
+
+args_version = buid_parser(
+    command='version',
+    help='Minecraft version for a directory',
+    description='Show or edit the Minecraft version for a directory',
+    directory=True,
+)
+args_version.add_argument('id', metavar='ID', type=str, nargs='?', help='id of the new target version of Minecraft to set')
+
+args_loader = buid_parser(
+    command='loader',
+    help='Loader for a directory',
+    description='Show or edit the Loader used for a directory',
+    directory=True,
+)
+args_loader.add_argument('id', metavar='ID', type=str, nargs='?', help='id of the new target Loader to set')
+
+# manage project's
+buid_parser(
+    command='check',
+    help='check if the project is installed',
+    directory=True,
+    project=True,
+    world=True,
+)
+buid_parser(
+    command='install',
+    help='install/update a project',
+    directory=True,
+    project=True,
+    world=True,
+)
+buid_parser(
+    command='enable',
+    help='enable a project',
+    directory=True,
+    project=True,
+    world=True,
+)
+buid_parser(
+    command='disable',
+    help='disable a project',
+    directory=True,
+    project=True,
+    world=True,
+)
+buid_parser(
+    command='uninstall',
+    help='uninstall a project',
+    directory=True,
+    project=True,
+    world=True,
+)
+buid_parser(
+    command='update',
+    help='update all projects in a directory or for a world',
+    directory=True,
+    world=True,
+)
+buid_parser(
+    command='open',
+    help='open the folder of a directory',
+    directory=True,
+    world=True,
+)
+
+# utility
+args_info = buid_parser(
+    command='info',
+    help='list various info about a project',
+    project=True,
+)
+args_info_group = args_info.add_mutually_exclusive_group()
+args_info_group.add_argument('--list-versions', action='store_true', help='list all versions availide')
+args_info_group.add_argument('--version', metavar='VERSION', type=str, help='show the info for a specific version')
+
+args_api = buid_parser(
+    command='api',
+    help='print a API request',
+    description='Print a API request',
+)
+args_api.add_argument('url', metavar='URL', type=str, help='url of the API request')
+args_api.add_argument('--', dest='params', metavar='PARAMS', type=str, nargs='+', default=[], help='parameters to apply to the API request')
+
+args_clear_cache = buid_parser(
+    command='clear-cache',
+    help='clear the cache',
+    description='Clear the cache, or specific cache files',
+)
+args_clear_cache.add_argument('files', metavar='FILES', type=str, nargs='*', default=[], help='specific cache files to remove')
+
 
 def main():
-    cmd = get_arg_n(1).lower()
-    if False: pass
+    args = parser.parse_args()
     
-    elif cmd == 'list':
-        project_list(get_arg_n(2, False), get_arg_n(3, False))
-        
-    elif cmd == 'directory_add':
-        directory_add(get_arg_n(2), get_arg_n(3))
-    elif cmd == 'directory_remove':
-        directory_remove(get_arg_n(2))
+    if args.command == 'list':
+        project_list(args.directory, args.world)
+    elif args.command == 'directory-add':
+        directory_add(args.directory, args.path)
+    elif args.command == 'directory-remove':
+        directory_remove(args.directory)
     
-    elif cmd == 'version':
-        dir_version(get_arg_n(2), get_arg_n(3, False))
-    elif cmd == 'loader':
-        dir_loader(get_arg_n(2), get_arg_n(3, False))
+    elif args.command == 'version':
+        dir_version(args.directory, args.id)
+    elif args.command == 'loader':
+        dir_loader(args.directory, args.id)
     
-    elif cmd == 'check':
-        project_check(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
-    elif cmd == 'install':
-        project_install(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
-    elif cmd == 'enable':
-        project_enable(get_arg_n(2), get_arg_n(3), True, get_arg_n(4, False))
-    elif cmd == 'disable':
-        project_enable(get_arg_n(2), get_arg_n(3), False, get_arg_n(4, False))
-    elif cmd == 'uninstall':
-        project_uninstall(get_arg_n(2), get_arg_n(3), get_arg_n(4, False))
-    elif cmd == 'update':
-        project_update(get_arg_n(2), get_arg_n(3, False))
-    elif cmd == 'open':
-        open_dir(get_arg_n(2), get_arg_n(3, False))
+    elif args.command == 'check':
+        project_check(args.directory, args.project, args.world)
+    elif args.command == 'install':
+        project_install(args.directory, args.project, args.world)
+    elif args.command == 'enable':
+        project_enable(args.directory, args.project, args.world)
+    elif args.command == 'disable':
+        project_enable(args.directory, args.project, args.world)
+    elif args.command == 'uninstall':
+        project_uninstall(args.directory, args.project, args.world)
+    elif args.command == 'update':
+        project_update(args.directory, args.world)
+    elif args.command == 'open':
+        open_dir(args.directory, args.world)
     
-    elif cmd == 'info':
-        project_info(get_arg_n(2))
-    elif cmd == 'info-version':
-        project_info_version(get_arg_n(2), get_arg_n(3, False))
-    elif cmd == 'api':
-        print_api(get_arg_n(2), argv[3:])
-    elif cmd == 'clear-cache':
-        Cache.clear_cache(argv[2:])
+    elif args.command == 'info':
+        if args.list_versions:
+            project_info_version(args.project, None)
+        elif args.version:
+            project_info_version(args.project, args.version)
+        else:
+            project_info(args.project)
+    elif args.command == 'api':
+        print_api(args.url, args.params)
+    elif args.command == 'clear-cache':
+        Cache.clear_cache(args.files)
     else:
-        usage()
+        parser.print_help()
 
 if __name__ == "__main__":
     main()
