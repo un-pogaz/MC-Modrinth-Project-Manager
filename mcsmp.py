@@ -798,83 +798,93 @@ def project_info(urlslug):
     else:
         print(f"Error during url request, the project {urlslug} probably doesn't exist")
 
-def project_info_version(urlslug, version=None):
+def project_versions_list(urlslug):
     urlslug = urlslug.lower()
     urllink = link('project', urlslug, 'version')
     url = requests.get(urllink)
     if url.ok:
         lst_version = json.loads(url.content)
-        if version:
-            version_data = None
-            for e in lst_version:
-                if e['version_number'] == version:
-                    version_data = e
-                    break
-            
-            if not version_data:
-                print(f"Error durg retreving info version, the '{version}' of the project {urlslug} doesn't exist")
-                return
-            
-            msg1 = f"Project: {urlslug}"
-            msg2 = f"Version: {version}"
-            if len(msg1) > len(msg2):
-                max = len(msg1)
+        
+        msg = f'Versions for: {urlslug}'
+        print('+'+'-'*(len(msg)+2)+'+')
+        print('| ' + msg + ' |')
+        print('+'+'-'*(len(msg)+2)+'+')
+        print()
+        print('Available version:', len(lst_version))
+        print()
+        lst = []
+        number_max = 0
+        mc_max = 0
+        loader_max = 0
+        for e in lst_version:
+            version_number = e['version_number']
+            if len(e['game_versions']) == 1:
+                game_versions = e['game_versions'][0]
             else:
-                max = len(msg2)
-            print('+'+'-'*(max+2)+'+')
-            print('| ' + msg1 +' '*(max-len(msg1)) + ' |')
-            print('| ' + msg2 +' '*(max-len(msg2)) + ' |')
-            print('+'+'-'*(max+2)+'+')
-            print()
-            if len(version_data['game_versions']) == 1:
-                game_versions = version_data['game_versions'][0]
-            else:
-                game_versions = version_data['game_versions'][0] + '-' + e['game_versions'][-1]
-            
-            print('Version name:', version_data['name'])
-            print('Minecraft supported:', game_versions)
-            print('Loader supported:', ', '.join(version_data['loaders']))
-            print()
-            print('Files:')
-            for f in version_data['files']:
-                filename = f['filename']
-                print(f'"{filename}"', '| sha1:', f['hashes']['sha1'])
-            
+                game_versions = e['game_versions'][0] + '-' + e['game_versions'][-1]
+            loaders = ', '.join(e['loaders'])
+            lst.append((version_number, game_versions, loaders))
+            if len(version_number) > number_max:
+                number_max = len(version_number)
+            if len(game_versions) > mc_max:
+                mc_max = len(game_versions)
+            if len(loaders) > loader_max:
+                loader_max = len(loaders)
+        
+        for e in lst:
+            print(
+                e[0] + ' '*(number_max-len(e[0])),
+                '|',
+                'Minecraft:', e[1] + ' '*(mc_max-len(e[1])),
+                '|',
+                'Loaders:', e[2] + ' '*(loader_max-len(e[2])),
+            )
+        
+    else:
+        print(f"Error during url request, the project {urlslug} probably doesn't exist")
+
+def project_version_info(urlslug, version):
+    urlslug = urlslug.lower()
+    urllink = link('project', urlslug, 'version')
+    url = requests.get(urllink)
+    if url.ok:
+        lst_version = json.loads(url.content)
+        
+        version_data = None
+        for e in lst_version:
+            if e['version_number'] == version:
+                version_data = e
+                break
+        
+        if not version_data:
+            print(f"Error durg retreving info version, the '{version}' of the project {urlslug} doesn't exist")
+            return
+        
+        msg1 = f"Project: {urlslug}"
+        msg2 = f"Version: {version}"
+        if len(msg1) > len(msg2):
+            max = len(msg1)
         else:
-            msg = f'Versions for: {urlslug}'
-            print('+'+'-'*(len(msg)+2)+'+')
-            print('| ' + msg + ' |')
-            print('+'+'-'*(len(msg)+2)+'+')
-            print()
-            print('Available version:', len(lst_version))
-            print()
-            lst = []
-            number_max = 0
-            mc_max = 0
-            loader_max = 0
-            for e in lst_version:
-                version_number = e['version_number']
-                if len(e['game_versions']) == 1:
-                    game_versions = e['game_versions'][0]
-                else:
-                    game_versions = e['game_versions'][0] + '-' + e['game_versions'][-1]
-                loaders = ', '.join(e['loaders'])
-                lst.append((version_number, game_versions, loaders))
-                if len(version_number) > number_max:
-                    number_max = len(version_number)
-                if len(game_versions) > mc_max:
-                    mc_max = len(game_versions)
-                if len(loaders) > loader_max:
-                    loader_max = len(loaders)
-            
-            for e in lst:
-                print(
-                    e[0] + ' '*(number_max-len(e[0])),
-                    '|',
-                    'Minecraft:', e[1] + ' '*(mc_max-len(e[1])),
-                    '|',
-                    'Loaders:', e[2] + ' '*(loader_max-len(e[2])),
-                )
+            max = len(msg2)
+        print('+'+'-'*(max+2)+'+')
+        print('| ' + msg1 +' '*(max-len(msg1)) + ' |')
+        print('| ' + msg2 +' '*(max-len(msg2)) + ' |')
+        print('+'+'-'*(max+2)+'+')
+        print()
+        if len(version_data['game_versions']) == 1:
+            game_versions = version_data['game_versions'][0]
+        else:
+            game_versions = version_data['game_versions'][0] + '-' + e['game_versions'][-1]
+        
+        print('Version name:', version_data['name'])
+        print('Minecraft supported:', game_versions)
+        print('Loader supported:', ', '.join(version_data['loaders']))
+        print()
+        print('Files:')
+        for f in version_data['files']:
+            filename = f['filename']
+            print(f'"{filename}"', '| sha1:', f['hashes']['sha1'])
+        
         
     else:
         print(f"Error during url request, the project {urlslug} probably doesn't exist")
@@ -1096,9 +1106,9 @@ def main():
     
     elif args.command == 'info':
         if args.list_versions:
-            project_info_version(args.project, None)
+            project_versions_list(args.project)
         elif args.version:
-            project_info_version(args.project, args.version)
+            project_version_info(args.project, args.version)
         else:
             project_info(args.project)
     elif args.command == 'api':
