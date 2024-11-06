@@ -33,15 +33,15 @@ def root(data=None):
 
 def mcsmp_path(path):
     return os.path.join(path, '.mcsmp.json')
-def mcsmp(dir, data=None, exit_if_error=True):
-    path = root().get(dir, None)
+def mcsmp(directory, data=None, exit_if_error=True):
+    path = root().get(directory, None)
     
     if not path:
-        print(f'The directory "{dir}" his not defined')
+        print(f'The directory "{directory}" his not defined')
         return exit() if exit_if_error else None
     
     if not os.path.exists(path):
-        print(f'The path "{path}" of the directory "{dir}" doesn\'t exist')
+        print(f'The path "{path}" of the directory "{directory}" doesn\'t exist')
         return exit() if exit_if_error else None
     
     edited = False
@@ -199,7 +199,7 @@ def hash_file(path):
 
 
 
-def directory_add(dir, path):
+def directory_add(directory, path):
     path = os.path.abspath(path).replace('\\', '/')
     if not os.path.exists(path):
         print(f'The path "{path}" doesn\'t exist')
@@ -211,12 +211,12 @@ def directory_add(dir, path):
     
     r = root()
     for k,v in r.items():
-        if path == v and dir != k:
+        if path == v and directory != k:
             print(f'The path "{path}" is already assosiated to the directory "{k}"')
             exit()
     
-    path_old = r.get(dir, None)
-    r[dir] = path
+    path_old = r.get(directory, None)
+    r[directory] = path
     root(r)
     
     if path_old and path_old != path:
@@ -224,9 +224,9 @@ def directory_add(dir, path):
             _json(mcsmp_path(path), _json(mcsmp_path(path_old)))
         safe_del(mcsmp_path(path_old))
     
-    data = mcsmp(dir)
+    data = mcsmp(directory)
     
-    print(f'Directorie "{dir}" added')
+    print(f'Directorie "{directory}" added')
     if not data['game_version'] and not data['loader']:
         print(f"Don't forget to set a 'version' for Minecraft and a 'loader'")
     elif not data['game_version']:
@@ -234,56 +234,56 @@ def directory_add(dir, path):
     elif not data['loader']:
         print(f"Don't forget to set a 'loader'")
 
-def directory_remove(dir):
+def directory_remove(directory):
     r = root()
-    if dir in r:
-        del r[dir]
+    if directory in r:
+        del r[directory]
         root(r)
-        print(f"The directory {dir} has been removed")
+        print(f"The directory {directory} has been removed")
     else:
-        print(f"No directory {dir} defined to remove")
+        print(f"No directory {directory} defined to remove")
 
 
-def dir_version(dir, version=None):
-    data = mcsmp(dir)
+def directory_version(directory, version=None):
+    data = mcsmp(directory)
     if version:
         data['game_version'] = version
-        print(f'Directorie "{dir}" set to the version: {version}')
-        mcsmp(dir, data)
+        print(f'Directorie "{directory}" set to the version: {version}')
+        mcsmp(directory, data)
     else:
         version = data['game_version']
-        print(f'Directorie "{dir}" is set to the version: {version}')
+        print(f'Directorie "{directory}" is set to the version: {version}')
 
-def dir_loader(dir, loader=None):
-    data = mcsmp(dir)
+def directory_loader(directory, loader=None):
+    data = mcsmp(directory)
     if loader:
         data['loader'] = loader.lower()
-        print(f'Directorie "{dir}" set to the loader: {loader}')
-        mcsmp(dir, data)
+        print(f'Directorie "{directory}" set to the loader: {loader}')
+        mcsmp(directory, data)
     else:
         loader = data['loader']
-        print(f'Directorie "{dir}" is set to the loader: {loader}')
+        print(f'Directorie "{directory}" is set to the loader: {loader}')
 
 
-def test_version(dir, data, _exit=True):
+def test_version(directory, data, _exit=True):
     if not data['game_version']:
-        print(f'The directory "{dir}" has no defined version')
+        print(f'The directory "{directory}" has no defined version')
         if _exit: exit()
         else: return False
     return True
 
-def test_loader(dir, data, _exit=True):
-    test_version(dir, data)
+def test_loader(directory, data, _exit=True):
+    test_version(directory, data)
     if not data['loader']:
-        print(f'The directory "{dir}" has no defined loader')
+        print(f'The directory "{directory}" has no defined loader')
         if _exit: exit()
         else: return False
     return True
 
-def test_world(dir, data, world, _exit=True):
-    test_version(dir, data)
+def test_world(directory, data, world, _exit=True):
+    test_version(directory, data)
     if not os.path.exists(os.path.join(data['path'], 'saves', world)):
-        print(f'The directory "{dir}" has no world named "{world}"')
+        print(f'The directory "{directory}" has no world named "{world}"')
         if _exit: exit()
         else: return False
     return True
@@ -315,7 +315,7 @@ def get_print_filename(enabled, present):
     return ('' if enabled else (' [disabled]' if present else ' !!not present!!'))
 
 
-def project_list(dir=None, world=None):
+def project_list(directory=None, world=None):
     
     def print_basic(name, data):
         path = data['path']
@@ -323,7 +323,7 @@ def project_list(dir=None, world=None):
         game_version = data['game_version']
         print(f'"{name}" : {game_version}/{loader} => "{path}"')
     
-    if dir is None:
+    if directory is None:
         r = root()
         if not r:
             print(f'No directorys has defined')
@@ -333,17 +333,17 @@ def project_list(dir=None, world=None):
             if data:
                 print_basic(name, data)
     
-    if dir is not None:
-        data = mcsmp(dir, exit_if_error=False)
+    if directory is not None:
+        data = mcsmp(directory, exit_if_error=False)
         if not data:
             return
         
-        print_basic(dir, data)
+        print_basic(directory, data)
         
         if world:
-            test_world(dir, data, world)
+            test_world(directory, data, world)
             for type, pt in project_types_world.items():
-                if pt.test(dir, data, world, False):
+                if pt.test(directory, data, world, False):
                     if world in data[type] and data[type][world]:
                         world_path = os.path.join(data['path'], 'saves', world, pt.folder)
                         print()
@@ -354,42 +354,42 @@ def project_list(dir=None, world=None):
         
         else:
             for type, pt in project_types.items():
-                if data[type] and pt.test(dir, data, False):
+                if data[type] and pt.test(directory, data, False):
                     print()
                     print(f'--== Installed {pt.folder} ==--')
                     for urlslug in data[type]:
                         enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
                         print(f"{urlslug}" + get_print_filename(enabled, present))
 
-def project_check(dir, urlslug, world=None):
+def project_check(directory, urlslug, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(dir)
-    test_version(dir, data)
+    data = mcsmp(directory)
+    test_version(directory, data)
     
     if world:
-        test_world(dir, data, world)
+        test_world(directory, data, world)
         for type, pt in project_types_world.items():
             if world in data[type]:
                 world_path = os.path.join(data['path'], 'saves', world, pt.folder)
                 if urlslug in data[type][world]:
                     enabled, present = test_filename(os.path.join(world_path, data[type][world][urlslug]))
-                    print(f'"{urlslug}" is installed in the world "{world}" of the directory "{dir}"'+ get_print_filename(enabled, present))
+                    print(f'"{urlslug}" is installed in the world "{world}" of the directory "{directory}"'+ get_print_filename(enabled, present))
                     if not present:
                         print(f'but the file are not present! Reinstal the project')
                     return
                 
-        print(f'"{urlslug}" is not installed in the world "{world}" of the directory "{dir}"')
+        print(f'"{urlslug}" is not installed in the world "{world}" of the directory "{directory}"')
     
     else:
         for type, pt in project_types.items():
             if urlslug in data[type]:
                 enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
-                print(f'"{urlslug}" is installed in the directory "{dir}"'+ get_print_filename(enabled, present))
+                print(f'"{urlslug}" is installed in the directory "{directory}"'+ get_print_filename(enabled, present))
                 if not present:
                     print(f'but the file are not present! Reinstal the project')
                 return
     
-        print(f'"{urlslug}" is not installed in the directory "{dir}"')
+        print(f'"{urlslug}" is not installed in the directory "{directory}"')
 
 
 def path_disabled(path):
@@ -411,45 +411,45 @@ def path_enable(data, type, urlslug, enable, world=None):
 def link(*wanted):
     return f'https://api.modrinth.com/v2/' + '/'.join(wanted)
 
-def project_install(dir, urlslug, world=None):
-    data = mcsmp(dir)
-    if install_project_file(dir, data, urlslug, world):
-        mcsmp(dir, data)
+def project_install(directory, urlslug, world=None):
+    data = mcsmp(directory)
+    if install_project_file(directory, data, urlslug, world):
+        mcsmp(directory, data)
 
-def project_update(dir, world=None):
-    data = mcsmp(dir)
+def project_update(directory, world=None):
+    data = mcsmp(directory)
     
     total = []
     errors = []
     
     if world:
         for type, pt in project_types_world.items():
-            if pt.test(dir, data, world, False):
+            if pt.test(directory, data, world, False):
                 if world in list(data[type].keys()):
                     for urlslug in data[type][world]:
-                        rslt = install_project_file(dir, data, urlslug, world)
+                        rslt = install_project_file(directory, data, urlslug, world)
                         if rslt is None:
                             errors.append(urlslug)
                         if rslt:
                             total.append(urlslug)
-                            mcsmp(dir, data)
+                            mcsmp(directory, data)
                         print()
         
-        print(f'Finaly! {len(total)} projects has been updated in the world "{world}" of "{dir}"')
+        print(f'Finaly! {len(total)} projects has been updated in the world "{world}" of "{directory}"')
     
     else:
         for type, pt in project_types.items():
-            if pt.test(dir, data, False):
+            if pt.test(directory, data, False):
                 for urlslug in list(data[type].keys()):
-                    rslt = install_project_file(dir, data, urlslug)
+                    rslt = install_project_file(directory, data, urlslug)
                     if rslt is None:
                         errors.append(urlslug)
                     if rslt:
                         total.append(urlslug)
-                        mcsmp(dir, data)
+                        mcsmp(directory, data)
                     print()
         
-        print(f'Finaly! {len(total)} projects has been updated in "{dir}"')
+        print(f'Finaly! {len(total)} projects has been updated in "{directory}"')
     
     if total:
         print('Updated projects: ' + ', '.join(total))
@@ -457,7 +457,7 @@ def project_update(dir, world=None):
         print(f'but... the following projects have suffered an error during their download:')
         print(', '.join(errors))
 
-def install_project_file(dir, data, urlslug, world=None):
+def install_project_file(directory, data, urlslug, world=None):
     urlslug = urlslug.lower()
     game_version = data['game_version']
     loader = data['loader']
@@ -487,7 +487,7 @@ def install_project_file(dir, data, urlslug, world=None):
             return False
         
         pt = project_types_world[project_type]
-        pt.test(dir, data, world)
+        pt.test(directory, data, world)
         base_path = os.path.join(data['path'], 'saves', world, pt.folder)
     else:
         
@@ -496,7 +496,7 @@ def install_project_file(dir, data, urlslug, world=None):
             return False
         
         pt = project_types[project_type]
-        pt.test(dir, data)
+        pt.test(directory, data)
         base_path = os.path.join(data['path'], pt.folder)
     
     print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
@@ -570,9 +570,9 @@ def install_project_file(dir, data, urlslug, world=None):
         installed = False
         if filename_old and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
             if world:
-                print(f'The project {urlslug} is already up to date in the world "{world}" of "{dir}"')
+                print(f'The project {urlslug} is already up to date in the world "{world}" of "{directory}"')
             else:
-                print(f'The project {urlslug} is already up to date in "{dir}"')
+                print(f'The project {urlslug} is already up to date in "{directory}"')
         
         else:
             print("Downloading project...")
@@ -592,10 +592,10 @@ def install_project_file(dir, data, urlslug, world=None):
                     data[project_type][world] = {}
                 data[project_type][world][urlslug] = filename
                 
-                print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{dir}"')
+                print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{directory}"')
             else:
                 data[project_type][urlslug] = filename
-                print(f'Done! The project "{urlslug}" has been installed in "{dir}"')
+                print(f'Done! The project "{urlslug}" has been installed in "{directory}"')
             installed = True
         
         if world:
@@ -667,7 +667,7 @@ def install_project_file(dir, data, urlslug, world=None):
                 if dependencies:
                     print('Installation of dependencies: ' + ', '.join(dependencies))
                     for d in dependencies:
-                        if install_project_file(dir, data, d):
+                        if install_project_file(directory, data, d):
                             installed = True
         
         return installed
@@ -675,10 +675,10 @@ def install_project_file(dir, data, urlslug, world=None):
     return False
 
 
-def project_uninstall(dir, urlslug, world=None):
+def project_uninstall(directory, urlslug, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(dir)
-    test_version(dir, data)
+    data = mcsmp(directory)
+    test_version(directory, data)
     
     if world:
         for type, pt in project_types_world.items():
@@ -688,11 +688,11 @@ def project_uninstall(dir, urlslug, world=None):
                 safe_del(path_filename)
                 
                 del data[type][world][urlslug]
-                mcsmp(dir, data)
-                print(f'Project {urlslug} deleted from "{dir}"')
+                mcsmp(directory, data)
+                print(f'Project {urlslug} deleted from "{directory}"')
                 return
         
-        print(f'The project {urlslug} is not installed in the world "{world}" of "{dir}"')
+        print(f'The project {urlslug} is not installed in the world "{world}" of "{directory}"')
     
     else:
         for type, pt in project_types.items():
@@ -702,50 +702,50 @@ def project_uninstall(dir, urlslug, world=None):
                 safe_del(path_filename)
                 
                 del data[type][urlslug]
-                mcsmp(dir, data)
-                print(f'Project {urlslug} deleted from "{dir}"')
+                mcsmp(directory, data)
+                print(f'Project {urlslug} deleted from "{directory}"')
                 return
         
-        print(f'The project {urlslug} is not installed in "{dir}"')
+        print(f'The project {urlslug} is not installed in "{directory}"')
 
 
-def project_enable(dir, urlslug, enable, world=None):
+def project_enable(directory, urlslug, enable, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(dir)
+    data = mcsmp(directory)
     
     if world:
         for type in project_types_world:
             if world in data[type] and urlslug in data[type][world]:
                 path_enable(data, type, urlslug, enable, world)
                 if enable:
-                    print(f'Project {urlslug} in the world "{world}" of "{dir}" is now enabled')
+                    print(f'Project {urlslug} in the world "{world}" of "{directory}" is now enabled')
                 else:
-                    print(f'Project {urlslug} in the world "{world}" of "{dir}" is now disabled')
+                    print(f'Project {urlslug} in the world "{world}" of "{directory}" is now disabled')
                 return
         
-        print(f'The project {urlslug} is not installed in the world "{world}" of "{dir}"')
+        print(f'The project {urlslug} is not installed in the world "{world}" of "{directory}"')
     
     else:
         for type in project_types:
             if urlslug in data[type]:
                 path_enable(data, type, urlslug, enable)
                 if enable:
-                    print(f'Project {urlslug} in "{dir}" is now enabled')
+                    print(f'Project {urlslug} in "{directory}" is now enabled')
                 else:
-                    print(f'Project {urlslug} in "{dir}" is now disabled')
+                    print(f'Project {urlslug} in "{directory}" is now disabled')
                 return
     
-        print(f'The project {urlslug} is not installed in "{dir}"')
+        print(f'The project {urlslug} is not installed in "{directory}"')
 
 
-def open_dir(dir, world=None):
-    data = mcsmp(dir)
+def open_directory(directory, world=None):
+    data = mcsmp(directory)
     path = data['path']
     if world:
         if world in data['datapack']:
             os.path.join(path, 'saves', world)
         else:
-            print(f'No world "{world}" in directory "{dir}". Opening the directory folder instead.')
+            print(f'No world "{world}" in directory "{directory}". Opening the directory folder instead.')
     
     os.startfile(path)
 
@@ -1085,9 +1085,9 @@ def main():
         directory_remove(args.directory)
     
     elif args.command == 'version':
-        dir_version(args.directory, args.id)
+        directory_version(args.directory, args.id)
     elif args.command == 'loader':
-        dir_loader(args.directory, args.id)
+        directory_loader(args.directory, args.id)
     
     elif args.command == 'check':
         project_check(args.directory, args.project, args.world)
@@ -1102,7 +1102,7 @@ def main():
     elif args.command == 'update':
         project_update(args.directory, args.world)
     elif args.command == 'open':
-        open_dir(args.directory, args.world)
+        open_directory(args.directory, args.world)
     
     elif args.command == 'info':
         if args.list_versions:
