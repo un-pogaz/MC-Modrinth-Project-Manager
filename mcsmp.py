@@ -102,31 +102,31 @@ def safe_del(path):
         pass
 
 class Cache:
-    _cachedir = os.path.join(os.path.dirname(argv[0]), '.cache')
-    def _make_cachedir():
-        cache_version = os.path.join(Cache._cachedir, '.v1')
+    _cachefolder = os.path.join(os.path.dirname(argv[0]), '.cache')
+    def _make_cachefolder():
+        cache_version = os.path.join(Cache._cachefolder, '.v1')
         if not os.path.exists(cache_version):
             Cache.clear_cache()
         
-        if not os.path.exists(Cache._cachedir):
-            os.makedirs(Cache._cachedir, exist_ok=True)
+        if not os.path.exists(Cache._cachefolder):
+            os.makedirs(Cache._cachefolder, exist_ok=True)
             with open(cache_version, 'wt', newline='\n', encoding='utf-8') as f:
                 f.write('')
     
     def clear_cache(files=None):
         if files:
             for f in files:
-                safe_del(os.path.join(Cache._cachedir, f))
+                safe_del(os.path.join(Cache._cachefolder, f))
             
             print('Cache files cleaned: ' + ', '.join(files))
         else:
-            safe_del(Cache._cachedir)
+            safe_del(Cache._cachefolder)
             if files is not None:
                 print('Cache folder cleaned')
     
     
     _project = None
-    _project_path = os.path.join(_cachedir, 'project')
+    _project_path = os.path.join(_cachefolder, 'project')
     
     def _read_project():
         if not Cache._project:
@@ -136,7 +136,7 @@ class Cache:
         Cache._read_project()
         if id not in Cache._project:
             Cache._project[id] = slug
-            Cache._make_cachedir()
+            Cache._make_cachefolder()
             _json(Cache._project_path, Cache._project)
     
     def get_project(id):
@@ -145,7 +145,7 @@ class Cache:
     
     
     _version = None
-    _version_path = os.path.join(_cachedir, 'version')
+    _version_path = os.path.join(_cachefolder, 'version')
     
     def _read_version():
         if not Cache._version:
@@ -155,7 +155,7 @@ class Cache:
         Cache._read_version()
         if id not in Cache._version:
             Cache._version[id] = slug
-            Cache._make_cachedir()
+            Cache._make_cachefolder()
             _json(Cache._version_path, Cache._version)
     
     def get_version(id):
@@ -164,7 +164,7 @@ class Cache:
     
     
     _slug = None
-    _slug_path = os.path.join(_cachedir, 'slug')
+    _slug_path = os.path.join(_cachefolder, 'slug')
     
     def _read_slug():
         if not Cache._slug:
@@ -174,7 +174,7 @@ class Cache:
         Cache._read_slug()
         if slug not in Cache._slug:
             Cache._slug[slug] = {'id':id,'project_type':type}
-            Cache._make_cachedir()
+            Cache._make_cachefolder()
             _json(Cache._slug_path, Cache._slug)
     
     def get_slug(slug):
