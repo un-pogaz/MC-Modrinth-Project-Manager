@@ -315,51 +315,58 @@ def get_print_filename(enabled, present):
     return ('' if enabled else (' [disabled]' if present else ' !!not present!!'))
 
 
-def project_list(directory=None, world=None):
+def list_directorys():
+    r = root()
+    if not r:
+        print(f'No directorys has defined')
+        return
+    for name in r:
+        data = mcsmp(name, exit_if_error=False)
+        if data:
+            path = data['path']
+            loader = data['loader']
+            game_version = data['game_version']
+            print(f'"{name}" : {game_version}/{loader} => "{path}"')
+
+def list_projects(directory):
+    data = mcsmp(directory, exit_if_error=False)
+    if not data:
+        return
     
-    def print_basic(name, data):
-        path = data['path']
-        loader = data['loader']
-        game_version = data['game_version']
-        print(f'"{name}" : {game_version}/{loader} => "{path}"')
+    path = data['path']
+    loader = data['loader']
+    game_version = data['game_version']
+    print(f'"{directory}" : {game_version}/{loader} => "{path}"')
     
-    if directory is None:
-        r = root()
-        if not r:
-            print(f'No directorys has defined')
-            return
-        for name in r:
-            data = mcsmp(name, exit_if_error=False)
-            if data:
-                print_basic(name, data)
+    for type, pt in project_types.items():
+        if data[type] and pt.test(directory, data, False):
+            print()
+            print(f'--== Installed {pt.folder} ==--')
+            for urlslug in data[type]:
+                enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
+                print(f"{urlslug}" + get_print_filename(enabled, present))
+
+def list_world_projects(directory, world):
+    data = mcsmp(directory, exit_if_error=False)
+    if not data:
+        return
     
-    if directory is not None:
-        data = mcsmp(directory, exit_if_error=False)
-        if not data:
-            return
-        
-        print_basic(directory, data)
-        
-        if world:
-            test_world(directory, data, world)
-            for type, pt in project_types_world.items():
-                if pt.test(directory, data, world, False):
-                    if world in data[type] and data[type][world]:
-                        world_path = os.path.join(data['path'], 'saves', world, pt.folder)
-                        print()
-                        print(f'--== Installed {pt.folder} in the world "{world}" ==--')
-                        for urlslug in data[type][world]:
-                            enabled, present = test_filename(os.path.join(world_path, data[type][world][urlslug]))
-                            print(f"{urlslug}" + get_print_filename(enabled, present))
-        
-        else:
-            for type, pt in project_types.items():
-                if data[type] and pt.test(directory, data, False):
-                    print()
-                    print(f'--== Installed {pt.folder} ==--')
-                    for urlslug in data[type]:
-                        enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
-                        print(f"{urlslug}" + get_print_filename(enabled, present))
+    path = data['path']
+    loader = data['loader']
+    game_version = data['game_version']
+    print(f'"{directory}" : {game_version}/{loader} => "{path}"')
+    
+    test_world(directory, data, world)
+    for type, pt in project_types_world.items():
+        if pt.test(directory, data, world, False):
+            if world in data[type] and data[type][world]:
+                world_path = os.path.join(data['path'], 'saves', world, pt.folder)
+                print()
+                print(f'--== Installed {pt.folder} in the world "{world}" ==--')
+                for urlslug in data[type][world]:
+                    enabled, present = test_filename(os.path.join(world_path, data[type][world][urlslug]))
+                    print(f"{urlslug}" + get_print_filename(enabled, present))
+
 
 def project_check(directory, urlslug, world=None):
     urlslug = urlslug.lower()
@@ -1078,7 +1085,12 @@ def main():
     args = parser.parse_args()
     
     if args.command == 'list':
-        project_list(args.directory, args.world)
+        if args.world is not None:
+            list_world_projects(args.directory, args.world)
+        elif args.directory is not None:
+            list_projects(args.directory)
+        else:
+            list_directorys()
     elif args.command == 'directory-add':
         directory_add(args.directory, args.path)
     elif args.command == 'directory-remove':
