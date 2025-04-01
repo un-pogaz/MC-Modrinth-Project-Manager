@@ -9,6 +9,8 @@ import requests
 requests = requests.Session()
 requests.headers.update({'User-Agent':'un-pogaz/MC-Modrinth-Project-Manager (un.pogaz@gmail.com)'})
 
+def join(*args: str):
+    return os.path.join(*args).replace('\\', '/')
 
 def _json(path, data=None):
     if data is not None:
@@ -32,55 +34,112 @@ def root(data=None):
     return sort_dict(_json('mcsmp.json', data))
 
 def mcsmp_path(path):
-    return os.path.join(path, '.mcsmp.json')
-def mcsmp(directory, data=None, exit_if_error=True):
-    path = root().get(directory, None)
+    return join(path, '.mcsmp.json')
+
+class MCSMP(dict):
+    def __init__(self, directory: str, exit_if_error=True):
+        self._directory = directory
+        self._path = None
+        self._mcsmp_path = None
+        self._load_data(exit_if_error=exit_if_error)
     
-    if not path:
-        print(f'The directory "{directory}" his not defined')
-        return exit() if exit_if_error else None
-    
-    if not os.path.exists(path):
-        print(f'The path "{path}" of the directory "{directory}" doesn\'t exist')
-        return exit() if exit_if_error else None
-    
-    edited = False
-    data_path = mcsmp_path(path)
-    if data is not None:
-        edited = True
-    else:
-        if not os.path.exists(data_path):
-            data = {}
+    def _load_data(self, *, exit_if_error=True):
+        self._path = root().get(self.directory, None)
+        
+        if not self.path:
+            print(f'The directory {self.directory!r} his not defined')
+            return exit() if exit_if_error else None
+        
+        if not os.path.exists(self.path):
+            print(f"The path {self._path!r} of the directory {self.directory!r} doesn't exist")
+            return exit() if exit_if_error else None
+        
+        edited = False
+        self._mcsmp_path = mcsmp_path(self.path)
+        if not os.path.exists(self.mcsmp_path):
             edited = True
         else:
-            data = _json(data_path)
-    
-    for k in ['game_version', 'loader']:
-        if k not in data:
-            data[k] = None
-            edited = True
-    for k in list(project_types.keys()) + list(project_types_world.keys()):
-        if k not in data:
-            data[k] = {}
-            edited = True
+            self.update(_json(self.mcsmp_path))
         
-        data[k] = sort_dict(data[k])
-    
-    for k in project_types_world.keys():
-        for kk in list(data[k].keys()):
-            w = data[k][kk]
-            if w:
-                data[k][kk] = sort_dict(w)
-            else:
-                del data[k][kk]
+        for k in ['game_version', 'loader']:
+            if k not in self:
+                self[k] = None
                 edited = True
+        for k in list(project_types.keys()) + list(project_types_world.keys()):
+            if k not in self:
+                self[k] = {}
+                edited = True
+            
+            self[k] = sort_dict(self[k])
+        
+        for k in project_types_world.keys():
+            for kk in list(self[k].keys()):
+                w = self[k][kk]
+                if w:
+                    self[k][kk] = sort_dict(w)
+                else:
+                    del self[k][kk]
+                    edited = True
+        
+        if edited:
+            self.commit()
     
-    if edited:
-        if data and 'path' in data: del data['path']
-        _json(data_path, data)
+    @property
+    def directory(self) -> str:
+        return self._directory
     
-    data['path'] = path
-    return data
+    @property
+    def path(self) -> str:
+        return self._path
+    
+    @property
+    def mcsmp_path(self) -> str:
+        return self._mcsmp_path
+    
+    @property
+    def version(self) -> str:
+        return self['game_version']
+    @version.setter
+    def version(self, value):
+        self['game_version'] = value
+    
+    @property
+    def loader(self) -> str:
+        return self['loader']
+    @loader.setter
+    def loader(self, value):
+        self['loader'] = value
+    
+    @property
+    def mod(self) -> dict[str, str]:
+        return self['mod']
+    @mod.setter
+    def mod(self, value):
+        self['mod'] = value
+    
+    @property
+    def resourcepack(self) -> dict[str, str]:
+        return self['resourcepack']
+    @resourcepack.setter
+    def resourcepack(self, value):
+        self['resourcepack'] = value
+    
+    @property
+    def datapack(self) -> dict[str, dict[str, str]] :
+        return self['datapack']
+    @datapack.setter
+    def datapack(self, value):
+        self['datapack'] = value
+    
+    @property
+    def shader(self) -> dict[str, str]:
+        return self['shader']
+    @shader.setter
+    def shader(self, value):
+        self['shader'] = value
+    
+    def commit(self):
+        _json(self.mcsmp_path, self)
 
 def safe_del(path):
     from shutil import rmtree
@@ -102,9 +161,9 @@ def safe_del(path):
         pass
 
 class Cache:
-    _cachefolder = os.path.join(os.path.dirname(argv[0]), '.cache')
+    _cachefolder = join(os.path.dirname(argv[0]), '.cache')
     def _make_cachefolder():
-        cache_version = os.path.join(Cache._cachefolder, '.v1')
+        cache_version = join(Cache._cachefolder, '.v1')
         if not os.path.exists(cache_version):
             Cache.clear_cache()
         
@@ -116,7 +175,7 @@ class Cache:
     def clear_cache(files=None):
         if files:
             for f in files:
-                safe_del(os.path.join(Cache._cachefolder, f))
+                safe_del(join(Cache._cachefolder, f))
             
             print('Cache files cleaned: ' + ', '.join(files))
         else:
@@ -126,7 +185,7 @@ class Cache:
     
     
     _project = None
-    _project_path = os.path.join(_cachefolder, 'project')
+    _project_path = join(_cachefolder, 'project')
     
     def _read_project():
         if not Cache._project:
@@ -145,7 +204,7 @@ class Cache:
     
     
     _version = None
-    _version_path = os.path.join(_cachefolder, 'version')
+    _version_path = join(_cachefolder, 'version')
     
     def _read_version():
         if not Cache._version:
@@ -164,7 +223,7 @@ class Cache:
     
     
     _slug = None
-    _slug_path = os.path.join(_cachefolder, 'slug')
+    _slug_path = join(_cachefolder, 'slug')
     
     def _read_slug():
         if not Cache._slug:
@@ -202,17 +261,17 @@ def hash_file(path):
 def directory_add(directory, path):
     path = os.path.abspath(path).replace('\\', '/')
     if not os.path.exists(path):
-        print(f'The path "{path}" doesn\'t exist')
+        print(f"The path {path!r} doesn't exist")
         exit()
     
     if not os.path.isdir(path):
-        print(f'The path "{path}" is not a folder')
+        print(f'The path {path!r} is not a folder')
         exit()
     
     r = root()
     for k,v in r.items():
         if path == v and directory != k:
-            print(f'The path "{path}" is already assosiated to the directory "{k}"')
+            print(f'The path {path!r} is already assosiated to the directory {k!r}')
             exit()
     
     path_old = r.get(directory, None)
@@ -224,15 +283,15 @@ def directory_add(directory, path):
             _json(mcsmp_path(path), _json(mcsmp_path(path_old)))
         safe_del(mcsmp_path(path_old))
     
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     
-    print(f'Directorie "{directory}" added')
-    if not data['game_version'] and not data['loader']:
-        print(f"Don't forget to set a 'version' for Minecraft and a 'loader'")
-    elif not data['game_version']:
-        print(f"Don't forget to set a 'version' for Minecraft")
-    elif not data['loader']:
-        print(f"Don't forget to set a 'loader'")
+    print(f'Directorie {directory!r} added')
+    if not data.version and not data.loader:
+        print(f"Don't forget to set a {data.version!r} for Minecraft and a {data.loader!r}")
+    elif not data.version:
+        print(f"Don't forget to set a {data.version!r} for Minecraft")
+    elif not data.loader:
+        print(f"Don't forget to set a {data.loader!r}")
 
 def directory_remove(directory):
     r = root()
@@ -245,58 +304,62 @@ def directory_remove(directory):
 
 
 def directory_version(directory, version=None):
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     if version:
-        data['game_version'] = version
-        print(f'Directorie "{directory}" set to the version: {version}')
-        mcsmp(directory, data)
+        data.version = version
+        data.commit()
+        print(f'Directorie {directory!r} set to the version: {data.version}')
     else:
-        version = data['game_version']
-        print(f'Directorie "{directory}" is set to the version: {version}')
+        print(f'Directorie {directory!r} is set to the version: {data.version}')
 
 def directory_loader(directory, loader=None):
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     if loader:
-        data['loader'] = loader.lower()
-        print(f'Directorie "{directory}" set to the loader: {loader}')
-        mcsmp(directory, data)
+        data.loader = loader.lower()
+        data.commit()
+        print(f'Directorie {directory!r} set to the loader: {data.loader}')
     else:
-        loader = data['loader']
-        print(f'Directorie "{directory}" is set to the loader: {loader}')
+        print(f'Directorie {directory!r} is set to the loader: {data.loader}')
 
 
-def test_version(directory, data, _exit=True):
-    if not data['game_version']:
-        print(f'The directory "{directory}" has no defined version')
-        if _exit: exit()
-        else: return False
+def test_version(directory, data: MCSMP, _exit=True):
+    if not data.version:
+        print(f'The directory {directory!r} has no defined version')
+        if _exit:
+            exit()
+        else:
+            return False
     return True
 
-def test_loader(directory, data, _exit=True):
+def test_loader(directory, data: MCSMP, _exit=True):
     test_version(directory, data)
-    if not data['loader']:
-        print(f'The directory "{directory}" has no defined loader')
-        if _exit: exit()
-        else: return False
+    if not data.loader:
+        print(f'The directory "{directory!r} has no defined loader')
+        if _exit:
+            exit()
+        else:
+            return False
     return True
 
-def test_world(directory, data, world, _exit=True):
+def test_world(directory, data: MCSMP, world, _exit=True):
     test_version(directory, data)
-    if not os.path.exists(os.path.join(data['path'], 'saves', world)):
-        print(f'The directory "{directory}" has no world named "{world}"')
-        if _exit: exit()
-        else: return False
+    if not os.path.exists(join(data.path, 'saves', world)):
+        print(f'The directory {directory!r} has no world named {world!r}')
+        if _exit:
+            exit()
+        else:
+            return False
     return True
 
 
 ProjectType = namedtuple('ProjectType', 'folder test')
 project_types = {
-    'resourcepack':ProjectType('resourcepacks', test_version),
-    'mod':ProjectType('mods', test_loader),
-    'shader':ProjectType('shaderpacks', test_version),
+    'resourcepack': ProjectType('resourcepacks', test_version),
+    'mod': ProjectType('mods', test_loader),
+    'shader': ProjectType('shaderpacks', test_version),
 }
 project_types_world = {
-    'datapack':ProjectType('datapacks', test_world),
+    'datapack': ProjectType('datapacks', test_world),
 }
 loaders_alt = {'quilt': ['fabric']}
 loaders_mods_swap = {'quilt': {'fabric-api':'qsl'}}
@@ -318,85 +381,76 @@ def get_print_filename(enabled, present):
 def list_directorys():
     r = root()
     if not r:
-        print(f'No directorys has defined')
+        print('No directorys has defined')
         return
     for name in r:
-        data = mcsmp(name, exit_if_error=False)
+        data = MCSMP(name, exit_if_error=False)
         if data:
-            path = data['path']
-            loader = data['loader']
-            game_version = data['game_version']
-            print(f'"{name}" : {game_version}/{loader} => "{path}"')
+            print(f'"{name}" : {data.version}/{data.loader} => "{data.path}"')
 
 def list_projects(directory):
-    data = mcsmp(directory, exit_if_error=False)
+    data = MCSMP(directory, exit_if_error=False)
     if not data:
         return
     
-    path = data['path']
-    loader = data['loader']
-    game_version = data['game_version']
-    print(f'"{directory}" : {game_version}/{loader} => "{path}"')
+    print(f'"{directory}" : {data.version}/{data.loader} => "{data.path}"')
     
     for type, pt in project_types.items():
         if data[type] and pt.test(directory, data, False):
             print()
             print(f'--== Installed {pt.folder} ==--')
             for urlslug in data[type]:
-                enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
-                print(f"{urlslug}" + get_print_filename(enabled, present))
+                enabled, present = test_filename(join(data.path, pt.folder, data[type][urlslug]))
+                print(urlslug + get_print_filename(enabled, present))
 
 def list_world_projects(directory, world):
-    data = mcsmp(directory, exit_if_error=False)
+    data = MCSMP(directory, exit_if_error=False)
     if not data:
         return
     
-    path = data['path']
-    loader = data['loader']
-    game_version = data['game_version']
-    print(f'"{directory}" : {game_version}/{loader} => "{path}"')
+    print(f'"{directory}" : {data.version}/{data.loader} => "{data.path}"')
     
     test_world(directory, data, world)
     for type, pt in project_types_world.items():
         if pt.test(directory, data, world, False):
             if world in data[type] and data[type][world]:
-                world_path = os.path.join(data['path'], 'saves', world, pt.folder)
+                world_path = join(data.path, 'saves', world, pt.folder)
                 print()
                 print(f'--== Installed {pt.folder} in the world "{world}" ==--')
                 for urlslug in data[type][world]:
-                    enabled, present = test_filename(os.path.join(world_path, data[type][world][urlslug]))
-                    print(f"{urlslug}" + get_print_filename(enabled, present))
+                    enabled, present = test_filename(join(world_path, data[type][world][urlslug]))
+                    print(urlslug + get_print_filename(enabled, present))
 
 
 def project_check(directory, urlslug, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     test_version(directory, data)
     
     if world:
         test_world(directory, data, world)
         for type, pt in project_types_world.items():
             if world in data[type]:
-                world_path = os.path.join(data['path'], 'saves', world, pt.folder)
+                world_path = join(data.path, 'saves', world, pt.folder)
                 if urlslug in data[type][world]:
-                    enabled, present = test_filename(os.path.join(world_path, data[type][world][urlslug]))
-                    print(f'"{urlslug}" is installed in the world "{world}" of the directory "{directory}"'+ get_print_filename(enabled, present))
+                    enabled, present = test_filename(join(world_path, data[type][world][urlslug]))
+                    print(f'{urlslug!r} is installed in the world {world!r} of the directory {directory!r}'+ get_print_filename(enabled, present))
                     if not present:
-                        print(f'but the file are not present! Reinstal the project')
+                        print('but the file are not present! Reinstal the project')
                     return
                 
-        print(f'"{urlslug}" is not installed in the world "{world}" of the directory "{directory}"')
+        print(f'{urlslug!r} is not installed in the world {world!r} of the directory {directory!r}')
     
     else:
         for type, pt in project_types.items():
             if urlslug in data[type]:
-                enabled, present = test_filename(os.path.join(data['path'], pt.folder, data[type][urlslug]))
-                print(f'"{urlslug}" is installed in the directory "{directory}"'+ get_print_filename(enabled, present))
+                enabled, present = test_filename(join(data.path, pt.folder, data[type][urlslug]))
+                print(f'{urlslug!r} is installed in the directory {directory!r}'+ get_print_filename(enabled, present))
                 if not present:
-                    print(f'but the file are not present! Reinstal the project')
+                    print('but the file are not present! Reinstal the project')
                 return
     
-        print(f'"{urlslug}" is not installed in the directory "{directory}"')
+        print(f'{urlslug!r} is not installed in the directory {directory!r}')
 
 
 def path_disabled(path):
@@ -404,9 +458,9 @@ def path_disabled(path):
 def path_enable(data, type, urlslug, enable, world=None):
     urlslug = urlslug.lower()
     if world:
-        path_filename = os.path.join(data['path'], 'saves', world, project_types_world[type].folder, data[type][world][urlslug])
+        path_filename = join(data.path, 'saves', world, project_types_world[type].folder, data[type][world][urlslug])
     else:
-        path_filename = os.path.join(data['path'], project_types[type].folder, data[type][urlslug])
+        path_filename = join(data.path, project_types[type].folder, data[type][urlslug])
     
     if enable and os.path.exists(path_disabled(path_filename)):
         os.rename(path_disabled(path_filename), path_filename)
@@ -416,15 +470,15 @@ def path_enable(data, type, urlslug, enable, world=None):
 
 
 def link(*wanted):
-    return f'https://api.modrinth.com/v2/' + '/'.join(wanted)
+    return 'https://api.modrinth.com/v2/' + '/'.join(wanted)
 
 def project_install(directory, urlslug, world=None):
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     if install_project_file(directory, data, urlslug, world):
-        mcsmp(directory, data)
+        data.commit()
 
 def project_update(directory, world=None):
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     
     total = []
     errors = []
@@ -439,10 +493,10 @@ def project_update(directory, world=None):
                             errors.append(urlslug)
                         if rslt:
                             total.append(urlslug)
-                            mcsmp(directory, data)
+                            data.commit()
                         print()
         
-        print(f'Finaly! {len(total)} projects has been updated in the world "{world}" of "{directory}"')
+        print(f'Finaly! {len(total)} projects has been updated in the world {world!r}" of {directory!r}')
     
     else:
         for type, pt in project_types.items():
@@ -453,21 +507,20 @@ def project_update(directory, world=None):
                         errors.append(urlslug)
                     if rslt:
                         total.append(urlslug)
-                        mcsmp(directory, data)
+                        data.commit()
                     print()
         
-        print(f'Finaly! {len(total)} projects has been updated in "{directory}"')
+        print(f'Finaly! {len(total)} projects has been updated in {directory!r}')
     
     if total:
         print('Updated projects: ' + ', '.join(total))
     if errors:
-        print(f'but... the following projects have suffered an error during their download:')
+        print('but... the following projects have suffered an error during their download:')
         print(', '.join(errors))
 
-def install_project_file(directory, data, urlslug, world=None):
+def install_project_file(directory, data: MCSMP, urlslug, world=None):
     urlslug = urlslug.lower()
-    game_version = data['game_version']
-    loader = data['loader']
+    loader = data.loader
     
     project_data = Cache.get_slug(urlslug)
     if not project_data:
@@ -490,23 +543,23 @@ def install_project_file(directory, data, urlslug, world=None):
             project_type = 'datapack'
         
         if project_type not in project_types_world:
-            print(f"The project {urlslug} has a type '{project_type}' incompatible with the argument [World]")
+            print(f"The project {urlslug} has a type {project_type!r} incompatible with the argument [World]")
             return False
         
         pt = project_types_world[project_type]
         pt.test(directory, data, world)
-        base_path = os.path.join(data['path'], 'saves', world, pt.folder)
+        base_path = join(data.path, 'saves', world, pt.folder)
     else:
         
         if project_type not in project_types:
-            print(f"The project {urlslug} has a type '{project_type}' incompatible for a global install")
+            print(f"The project {urlslug} has a type {project_type!r} incompatible for a global install")
             return False
         
         pt = project_types[project_type]
         pt.test(directory, data)
-        base_path = os.path.join(data['path'], pt.folder)
+        base_path = join(data.path, pt.folder)
     
-    print(f"Fetching versions of {urlslug} for Minecraft '{game_version}' and the loader '{loader}'...")
+    print(f"Fetching versions of {urlslug} for Minecraft {data.version!r} and the loader {loader!r}...")
     
     if project_type == 'resourcepack':
         loader = 'minecraft'
@@ -520,7 +573,10 @@ def install_project_file(directory, data, urlslug, world=None):
     else:
         all_loaders = []
     
-    params = {'game_versions':f'["{game_version}"]', 'loaders':'['+','.join(['"'+l+'"' for l in all_loaders])+']'}
+    params = {
+        'game_versions': f'["{data.version}"]',
+        'loaders': '['+','.join(['"'+x+'"' for x in all_loaders])+']'
+    }
     versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
     
     valide_versions = []
@@ -543,14 +599,14 @@ def install_project_file(directory, data, urlslug, world=None):
             version_project = v
     
     if not version_project:
-        print(f"No version available")
+        print("No version available")
     
     else:
         Cache.add_version(version_project['id'], urlslug)
         version_file = version_project['files'][0]
         
         if project_type == 'shader' and version_project['loaders'][0] in ['vanilla', 'canvas']:
-            base_path = os.path.join(data['path'], 'resourcepacks')
+            base_path = join(data.path, 'resourcepacks')
         
         os.makedirs(base_path, exist_ok=True)
         
@@ -559,9 +615,9 @@ def install_project_file(directory, data, urlslug, world=None):
             filename_old = data[project_type].get(world, {}).get(urlslug, None)
         else:
             filename_old = data[project_type].get(urlslug, None)
-        path_filename = os.path.join(base_path, filename)
+        path_filename = join(base_path, filename)
         
-        print(f"Got the link for '{filename}'")
+        print(f"Got the link for {filename!r}")
         
         disabled = False
         if os.path.exists(path_disabled(path_filename)):
@@ -569,7 +625,7 @@ def install_project_file(directory, data, urlslug, world=None):
             os.rename(path_disabled(path_filename), path_filename)
         
         if filename_old:
-            path_filename_old = os.path.join(base_path, filename_old)
+            path_filename_old = join(base_path, filename_old)
             if os.path.exists(path_disabled(path_filename_old)):
                 disabled = True
                 os.rename(path_disabled(path_filename_old), path_filename_old)
@@ -577,9 +633,9 @@ def install_project_file(directory, data, urlslug, world=None):
         installed = False
         if filename_old and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
             if world:
-                print(f'The project {urlslug} is already up to date in the world "{world}" of "{directory}"')
+                print(f'The project {urlslug!r} is already up to date in the world {world!r} of {directory!r}')
             else:
-                print(f'The project {urlslug} is already up to date in "{directory}"')
+                print(f'The project {urlslug!r} is already up to date in {directory!r}')
         
         else:
             print("Downloading project...")
@@ -599,16 +655,16 @@ def install_project_file(directory, data, urlslug, world=None):
                     data[project_type][world] = {}
                 data[project_type][world][urlslug] = filename
                 
-                print(f'Done! The project "{urlslug}" has been installed in the world "{world}" of "{directory}"')
+                print(f'Done! The project {urlslug!r} has been installed in the world {world!r} of {directory!r}')
             else:
                 data[project_type][urlslug] = filename
-                print(f'Done! The project "{urlslug}" has been installed in "{directory}"')
+                print(f'Done! The project {urlslug!r} has been installed in {directory!r}')
             installed = True
         
         if world:
             if len(version_project['files']) >= 2:
                 assets_file = version_project['files'][1]
-                assets_path = os.path.join(data['path'], 'resourcepacks', assets_file['filename'])
+                assets_path = join(data.path, 'resourcepacks', assets_file['filename'])
                 if hash_file(assets_path) != assets_file['hashes'][hash_algo]:
                     print("Downloading additional assets...")
                     url = requests.get(assets_file['url'])
@@ -684,77 +740,76 @@ def install_project_file(directory, data, urlslug, world=None):
 
 def project_uninstall(directory, urlslug, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     test_version(directory, data)
     
     if world:
         for type, pt in project_types_world.items():
             if world in data[type] and urlslug in data[type][world]:
-                path_filename = os.path.join(data['path'], 'saves', world, pt.folder, data[type][world][urlslug])
+                path_filename = join(data.path, 'saves', world, pt.folder, data[type][world][urlslug])
                 path_enable(data, type, urlslug, True, world)
                 safe_del(path_filename)
                 
                 del data[type][world][urlslug]
-                mcsmp(directory, data)
-                print(f'Project {urlslug} deleted from "{directory}"')
+                data.commit()
+                print(f'Project {urlslug!r} deleted from {directory!r}')
                 return
         
-        print(f'The project {urlslug} is not installed in the world "{world}" of "{directory}"')
+        print(f'The project {urlslug!r} is not installed in the world {world!r} of {directory!r}')
     
     else:
         for type, pt in project_types.items():
             if urlslug in data[type]:
-                path_filename = os.path.join(data['path'], pt.folder, data[type][urlslug])
+                path_filename = join(data.path, pt.folder, data[type][urlslug])
                 path_enable(data, type, urlslug, True)
                 safe_del(path_filename)
                 
                 del data[type][urlslug]
-                mcsmp(directory, data)
-                print(f'Project {urlslug} deleted from "{directory}"')
+                data.commit()
+                print(f'Project {urlslug!r} deleted from {directory!r}')
                 return
         
-        print(f'The project {urlslug} is not installed in "{directory}"')
+        print(f'The project {urlslug!r} is not installed in {directory!r}')
 
 
 def project_enable(directory, urlslug, enable, world=None):
     urlslug = urlslug.lower()
-    data = mcsmp(directory)
+    data = MCSMP(directory)
     
     if world:
         for type in project_types_world:
             if world in data[type] and urlslug in data[type][world]:
                 path_enable(data, type, urlslug, enable, world)
                 if enable:
-                    print(f'Project {urlslug} in the world "{world}" of "{directory}" is now enabled')
+                    print(f'Project {urlslug!r} in the world {world!r} of {directory!r} is now enabled')
                 else:
-                    print(f'Project {urlslug} in the world "{world}" of "{directory}" is now disabled')
+                    print(f'Project {urlslug!r} in the world {world!r} of {directory!r} is now disabled')
                 return
         
-        print(f'The project {urlslug} is not installed in the world "{world}" of "{directory}"')
+        print(f'The project {urlslug!r} is not installed in the world {world!r} of {directory!r}')
     
     else:
         for type in project_types:
             if urlslug in data[type]:
                 path_enable(data, type, urlslug, enable)
                 if enable:
-                    print(f'Project {urlslug} in "{directory}" is now enabled')
+                    print(f'Project {urlslug!r} in {directory!r}  is now enabled')
                 else:
-                    print(f'Project {urlslug} in "{directory}" is now disabled')
+                    print(f'Project {urlslug!r} in {directory!r} is now disabled')
                 return
     
-        print(f'The project {urlslug} is not installed in "{directory}"')
+        print(f'The project {urlslug!r} is not installed in {directory!r}')
 
 
 def open_directory(directory, world=None):
-    data = mcsmp(directory)
-    path = data['path']
+    data = MCSMP(directory)
     if world:
-        if world in data['datapack']:
-            os.path.join(path, 'saves', world)
+        if world in data.datapack:
+            join(data.path, 'saves', world)
         else:
-            print(f'No world "{world}" in directory "{directory}". Opening the directory folder instead.')
+            print(f'No world {world!r} in directory "{directory!r}. Opening the directory folder instead.')
     
-    os.startfile(path)
+    os.startfile(data.path)
 
 
 def project_info(urlslug):
@@ -864,7 +919,7 @@ def project_version_info(urlslug, version):
                 break
         
         if not version_data:
-            print(f"Error durg retreving info version, the '{version}' of the project {urlslug} doesn't exist")
+            print(f"Error durg retreving info version, the {version!r} of the project {urlslug} doesn't exist")
             return
         
         msg1 = f"Project: {urlslug}"
