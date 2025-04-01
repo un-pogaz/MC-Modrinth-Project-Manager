@@ -61,7 +61,7 @@ class MCSMP(dict):
         else:
             self.update(_json(self.mcsmp_path))
         
-        for k in ['game_version', 'loader']:
+        for k in ['game_version', 'loader', 'loader_shader']:
             if k not in self:
                 self[k] = None
                 edited = True
@@ -111,6 +111,14 @@ class MCSMP(dict):
         self['loader'] = value
     
     @property
+    def loader_shader(self) -> str:
+        return self['loader_shader']
+    @loader_shader.setter
+    def loader_shader(self, value):
+        self['loader_shader'] = value
+    
+    
+    @property
     def mod(self) -> dict[str, str]:
         return self['mod']
     @mod.setter
@@ -157,7 +165,7 @@ def safe_del(path):
     
     try:
         remove(path)
-    except:
+    except Exception:
         pass
 
 class Cache:
@@ -308,18 +316,21 @@ def directory_version(directory, version=None):
     if version:
         data.version = version
         data.commit()
-        print(f'Directorie {directory!r} set to the version: {data.version}')
-    else:
-        print(f'Directorie {directory!r} is set to the version: {data.version}')
+    print(f'Directorie {directory!r} is set to the version: {data.version}')
 
 def directory_loader(directory, loader=None):
     data = MCSMP(directory)
     if loader:
         data.loader = loader.lower()
         data.commit()
-        print(f'Directorie {directory!r} set to the loader: {data.loader}')
-    else:
-        print(f'Directorie {directory!r} is set to the loader: {data.loader}')
+    print(f'Directorie {directory!r} is set to the loader: {data.loader}')
+
+def directory_shader(directory, loader=None):
+    data = MCSMP(directory)
+    if loader:
+        data.loader_shader = loader.lower() or None
+        data.commit()
+    print(f'Directorie {directory!r} is set to the shader loader: {data.loader_shader}')
 
 
 def test_version(directory, data: MCSMP, _exit=True):
@@ -332,6 +343,16 @@ def test_version(directory, data: MCSMP, _exit=True):
     return True
 
 def test_loader(directory, data: MCSMP, _exit=True):
+    test_version(directory, data)
+    if not data.loader:
+        print(f'The directory "{directory!r} has no defined loader')
+        if _exit:
+            exit()
+        else:
+            return False
+    return True
+
+def test_shader(directory, data: MCSMP, _exit=True):
     test_version(directory, data)
     if not data.loader:
         print(f'The directory "{directory!r} has no defined loader')
@@ -356,7 +377,7 @@ ProjectType = namedtuple('ProjectType', 'folder test')
 project_types = {
     'resourcepack': ProjectType('resourcepacks', test_version),
     'mod': ProjectType('mods', test_loader),
-    'shader': ProjectType('shaderpacks', test_version),
+    'shader': ProjectType('shaderpacks', test_shader),
 }
 project_types_world = {
     'datapack': ProjectType('datapacks', test_world),
@@ -559,14 +580,14 @@ def install_project_file(directory, data: MCSMP, urlslug, world=None):
         pt.test(directory, data)
         base_path = join(data.path, pt.folder)
     
-    print(f"Fetching versions of {urlslug} for Minecraft {data.version!r} and the loader {loader!r}...")
-    
     if project_type == 'resourcepack':
         loader = 'minecraft'
     if project_type == 'shader':
-        loader = ''
+        loader = data.loader_shader
     if project_type == 'datapack':
         loader = 'datapack'
+    
+    print(f"Fetching versions of {urlslug} for Minecraft {data.version!r} and the loader {loader!r}...")
     
     if loader:
         all_loaders = [loader]+loaders_alt.get(loader, [])
@@ -704,7 +725,7 @@ def install_project_file(directory, data: MCSMP, urlslug, world=None):
                     Cache.add_version(versionid, p_slug)
                 
                 return p_slug or v_slug
-            except:
+            except Exception:
                 return None
         
         def is_installed(dependencie):
@@ -820,7 +841,7 @@ def project_info(urlslug):
         data = json.loads(url.content)
         try:
             datapack = json.loads(requests.get(link('project', urlslug, 'version'), params={'loaders':'["datapack"]'}).content)
-        except:
+        except Exception:
             datapack = []
         
         data_display = data['title'] + ' ' + (data['project_type'] if not datapack else 'datapack')
@@ -954,7 +975,7 @@ def project_version_info(urlslug, version):
 def print_api(base_url, args=None):
     params = {}
     for p in args or []:
-        if not '=' in p:
+        if '=' not in p:
             params[p.replace(' ', '').strip()] = ''
         else:
             q,p = tuple(p.split('=',1))
@@ -1061,6 +1082,14 @@ args_loader = buid_parser(
 )
 args_loader.add_argument('id', metavar='ID', type=str, nargs='?', help='id of the new target Loader to set')
 
+args_loader = buid_parser(
+    command='shader',
+    help='Shader loader for a directory',
+    description='Show or edit the Shader loader used for a directory',
+    directory=True,
+)
+args_loader.add_argument('id', metavar='ID', type=str, nargs='?', help='id of the new target Shader loader to set')
+
 # manage project's
 buid_parser(
     command='check',
@@ -1155,6 +1184,8 @@ def main():
         directory_version(args.directory, args.id)
     elif args.command == 'loader':
         directory_loader(args.directory, args.id)
+    elif args.command == 'shader':
+        directory_shader(args.directory, args.id)
     
     elif args.command == 'check':
         project_check(args.directory, args.project, args.world)
