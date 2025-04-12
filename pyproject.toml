@@ -1,0 +1,10 @@
+[project]
+name = "mcsmp"
+description = "A simple Python CLI Project Manager for Minecraft and Modrinth (mod, resource packs, shaders, datapacks)"
+requires-python = ">=3.10"
+readme = "README.md"
+license = "GPL-3.0-only"
+dependencies = [
+    "requests>=2.28.1",
+]
+dynamic = ["version"]
