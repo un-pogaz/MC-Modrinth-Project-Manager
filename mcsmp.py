@@ -248,22 +248,14 @@ class Cache:
         Cache._read_slug()
         return Cache._slug.get(slug, None)
 
-hash_algo = 'sha1'
-def hash_file(path):
-    import hashlib
-    
-    if os.path.exists(path):
-        algo = hashlib.new(hash_algo)
-        
-        with open(path, 'rb') as f:
-            while True:
-                data = f.read(65536)
-                if not data:
-                    break
-                algo.update(data)
-        
-        return algo.hexdigest()
-
+HASH_ALGO = 'sha1'
+def hash_file(file):
+    if os.path.exists(file):
+        import hashlib
+        with open(file, 'rb') as f:
+            hash = hashlib.file_digest(f, HASH_ALGO)
+        return hash.hexdigest()
+    return None
 
 
 def directory_add(directory, path):
@@ -650,9 +642,9 @@ def install_project_file(directory, data: MCSMP, urlslug, world=None):
             if os.path.exists(path_disabled(path_filename_old)):
                 disabled = True
                 os.rename(path_disabled(path_filename_old), path_filename_old)
-            
+        
         installed = False
-        if filename_old and filename_old == filename and hash_file(path_filename) == version_file['hashes'][hash_algo]:
+        if filename_old and filename_old == filename and hash_file(path_filename) == version_file['hashes'][HASH_ALGO]:
             if world:
                 print(f'The project {urlslug!r} is already up to date in the world {world!r} of {directory!r}')
             else:
@@ -686,7 +678,7 @@ def install_project_file(directory, data: MCSMP, urlslug, world=None):
             if len(version_project['files']) >= 2:
                 assets_file = version_project['files'][1]
                 assets_path = join(data.path, 'resourcepacks', assets_file['filename'])
-                if hash_file(assets_path) != assets_file['hashes'][hash_algo]:
+                if hash_file(assets_path) != assets_file['hashes'][HASH_ALGO]:
                     print("Downloading additional assets...")
                     url = requests.get(assets_file['url'])
                     if url.ok:
