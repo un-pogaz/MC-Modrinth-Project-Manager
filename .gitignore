@@ -1,13 +1,6 @@
-## gitignore
-## https://git-scm.com/docs/gitignore
-##
+/*env*/
+/__pycache__/
 
---*/
-zz*
-
-*.code-workspace
-*.lnk
-
-__pycache__
 .cache
+
 mcsmp.json
