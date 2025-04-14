@@ -1184,9 +1184,9 @@ def main():
     elif args.command == 'install':
         project_install(args.directory, args.project, args.world)
     elif args.command == 'enable':
-        project_enable(args.directory, args.project, args.world)
+        project_enable(args.directory, args.project, True, args.world)
     elif args.command == 'disable':
-        project_enable(args.directory, args.project, args.world)
+        project_enable(args.directory, args.project, False, args.world)
     elif args.command == 'uninstall':
         project_uninstall(args.directory, args.project, args.world)
     elif args.command == 'update':
