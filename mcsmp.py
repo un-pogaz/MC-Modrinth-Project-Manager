@@ -837,9 +837,11 @@ def project_info(urlslug):
             datapack = []
         
         data_display = data['title'] + ' ' + (data['project_type'] if not datapack else 'datapack')
-        print('+'+'-'*(len(data_display)+2)+'+')
+        print('+-'+'-'*(len(data_display))+'-+')
         print('| ' + data_display + ' |')
-        print('+'+'-'*(len(data_display)+2)+'+')
+        print('+-'+'-'*(len(data_display))+'-+')
+        if data['status'] == 'archived':
+            print('<< ARCHIVED >>'.center(len(data_display)+4, '='))
         print()
         
         def clear_date(date):
@@ -867,6 +869,7 @@ def project_info(urlslug):
         print(f"Serverside: {data['server_side']}")
         print(f"Clientside: {data['client_side']}")
         print('\n\n-- LINKS --------------------------------')
+        print(f"Modrinth: https://modrinth.com/{data['project_type']}/{data['slug']}")
         print(f'Source: {data["source_url"]}')
         print(f'Discord: {data["discord_url"]}')
         print(f'Wiki: {data["wiki_url"]}')
