@@ -588,7 +588,8 @@ def install_project_file(directory, data: MCSMP, urlslug, world=None):
     
     params = {
         'game_versions': f'["{data.version}"]',
-        'loaders': '['+','.join(['"'+x+'"' for x in all_loaders])+']'
+        'loaders': '['+','.join(['"'+x+'"' for x in all_loaders])+']',
+        'include_changelog': 'false',
     }
     versions = json.loads(requests.get(link('project', project_id, 'version'), params=params).content)
     
@@ -832,7 +833,11 @@ def project_info(urlslug):
     if url.ok:
         data = json.loads(url.content)
         try:
-            datapack = json.loads(requests.get(link('project', urlslug, 'version'), params={'loaders':'["datapack"]'}).content)
+            params = {
+                'loaders': '["datapack"]',
+                'include_changelog': 'false',
+            }
+            datapack = json.loads(requests.get(link('project', urlslug, 'version'), params=params).content)
         except Exception:
             datapack = []
         
